@@ -1,40 +1,49 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert } from 'react-native';
-import { Link } from 'expo-router';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import axios from 'axios';
+import { Link, useRouter  } from 'expo-router';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [senha, setSenha] = useState('');
+  const API_URL = 'http://192.168.18.20:5000';
+  const router = useRouter();
 
-  const handleLogin = () => {
-
-    Alert.alert('Login', `Email: ${email}\nSenha: ${password}`);
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/api/login`, { email, senha });
+      if (response.data.message === 'Login bem-sucedido') {
+        router.push('/');
+      }
+    } catch (error: any) {
+      console.error('Erro no login:', error); // Log no console para debugging
+      Alert.alert('Erro de autenticação', error.response?.data?.error || error.message || 'Erro desconhecido');
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Faça Login</Text>
+      <Text style={styles.title}>Login</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
       />
       <TextInput
         style={styles.input}
         placeholder="Senha"
-        value={password}
-        onChangeText={setPassword}
+        value={senha}
+        onChangeText={setSenha}
         secureTextEntry
       />
-      <Link href="/" style={styles.button} onPress={handleLogin}>
-        Entrar
-      </Link>
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Não tem uma conta?</Text>
-        <Link href="/signup" style={styles.link}>Criar uma conta</Link>
+      <Button title="Entrar" onPress={handleLogin} />
+      
+      <View style={styles.signupContainer}>
+        <Text style={styles.signupText}>Não tem uma conta?</Text>
+        <Link href="/signup" style={styles.signupLink}>
+          Criar conta
+        </Link>
       </View>
     </View>
   );
@@ -43,45 +52,36 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: 20,
+    justifyContent: 'center',
     backgroundColor: '#f5f5f5',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: 20,
   },
   input: {
-    height: 50,
+    height: 40,
     borderColor: '#ddd',
     borderWidth: 1,
     borderRadius: 5,
-    paddingHorizontal: 15,
-    marginBottom: 15,
+    paddingHorizontal: 10,
+    marginBottom: 10,
     backgroundColor: '#fff',
   },
-  button: {
-    backgroundColor: '#007bff',
-    paddingVertical: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 16,
-    marginTop: 10,
-  },
-  footer: {
+  signupContainer: {
     marginTop: 20,
     alignItems: 'center',
   },
-  footerText: {
+  signupText: {
     fontSize: 16,
+    color: '#666',
   },
-  link: {
-    marginTop: 10,
-    fontSize: 16,
+  signupLink: {
+    marginTop: 5,
     color: '#007bff',
+    fontSize: 16,
   },
 });
