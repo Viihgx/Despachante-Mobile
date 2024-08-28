@@ -1,14 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
+const jwt = require('jsonwebtoken');
 
-// login
+const SECRET_KEY = 'wS&erhPk#65m]jDC7N/Qa<';  // chave secreta segura
+
+// Rota de Login
 router.post('/login', async (req, res) => {
   const { email, senha } = req.body;
 
   const { data, error } = await supabase
     .from('Usuarios')
-    .select('Email_usuario, Senha_usuario')
+    .select('Nome, Email_usuario, Senha_usuario')
     .eq('Email_usuario', email)
     .single();
 
@@ -20,15 +23,19 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Senha incorreta' });
   }
 
-  res.status(200).json({ message: 'Login bem-sucedido', user: data });
+  // Gerando o token JWT
+  const token = jwt.sign({ email: data.Email_usuario, nome: data.Nome }, SECRET_KEY, {
+    expiresIn: '1h'  // Token expira em 1 hora
+  });
+
+  res.status(200).json({ message: 'Login bem-sucedido', token });
 });
 
-// Singnup
+// Rota de Cadastro (SignUp)
 router.post('/signup', async (req, res) => {
-  const { email, senha, nome } = req.body;  // Agora recebemos o nome no corpo da requisição
+  const { email, senha, nome } = req.body;
   console.log('Tentativa de criação de conta para o email:', email);
 
-  // Verifica se o email já existe
   const { data, error } = await supabase
     .from('Usuarios')
     .select('Email_usuario')
@@ -45,10 +52,9 @@ router.post('/signup', async (req, res) => {
     return res.status(400).json({ error: 'Email já cadastrado' });
   }
 
-  // Insere o novo usuário com o nome
   const { error: insertError } = await supabase
     .from('Usuarios')
-    .insert([{ Nome: nome, Email_usuario: email, Senha_usuario: senha }]);  // Incluindo o nome na inserção
+    .insert([{ Nome: nome, Email_usuario: email, Senha_usuario: senha }]);
 
   if (insertError) {
     console.error('Erro ao criar usuário:', insertError);
@@ -59,6 +65,41 @@ router.post('/signup', async (req, res) => {
   res.status(200).json({ message: 'Usuário criado com sucesso' });
 });
 
+// Middleware de Autenticação para Proteger Rotas
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
+  if (!token) return res.status(401).json({ error: 'Acesso negado. Nenhum token fornecido.' });
+
+  jwt.verify(token, SECRET_KEY, (err, user) => {
+    if (err) return res.status(403).json({ error: 'Token inválido.' });
+
+    req.user = user;  // Armazena as informações do usuário no request
+    next();  // Passa para o próximo middleware ou rota
+  });
+}
+
+// Teste de Rota Protegida
+router.get('/protected-route', authenticateToken, (req, res) => {
+  res.json({ message: `Olá, ${req.user.nome}. Você tem acesso a esta rota protegida!` });
+});
+
+// Rota para Buscar Dados do Usuário Logado
+router.get('/user-data', authenticateToken, async (req, res) => {
+  const { email } = req.user;
+
+  const { data, error } = await supabase
+    .from('Usuarios')
+    .select('Nome')
+    .eq('Email_usuario', email)
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: 'Erro ao buscar dados do usuário' });
+  }
+
+  res.status(200).json({ name: data.Nome });
+});
 
 module.exports = router;
