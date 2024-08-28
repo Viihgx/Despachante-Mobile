@@ -6,7 +6,8 @@ import { Link } from 'expo-router';
 
 export default function HomeScreen() {
   const [userName, setUserName] = useState('');
-  const API_URL = 'http://192.168.18.20:5000';  
+  const [services, setServices] = useState([]); // Inicialmente vazio, a lógica para carregar serviços será adicionada depois
+  const API_URL = 'http://192.168.18.20:5000';  // Substitua pela URL do seu backend
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -18,7 +19,7 @@ export default function HomeScreen() {
           return;
         }
 
-        // Faz a requisição para a rota protegida
+        // Faz a requisição para a rota protegida (exemplo para buscar dados do usuário)
         const response = await axios.get(`${API_URL}/api/user-data`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -27,6 +28,9 @@ export default function HomeScreen() {
 
         // Define o nome do usuário
         setUserName(response.data.name);
+
+        // Aqui você pode fazer outra requisição para buscar os serviços do usuário
+        // setServices(response.data.services); // Isso é só um exemplo
       } catch (error) {
         console.error('Erro ao buscar dados do usuário:', error);
         Alert.alert('Erro', 'Não foi possível carregar os dados do usuário');
@@ -38,30 +42,28 @@ export default function HomeScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Bem-vindo ao Despachante IPVA</Text>
-      <Text style={styles.subtitle}>Olá, {userName}</Text>
-      <Text style={styles.subtitle}>Escolha um serviço abaixo:</Text>
-      
-      <View style={styles.cardContainer}>
-        <TouchableOpacity style={styles.card} onPress={() => {/* Navegação */}}>
-          <Text style={styles.cardTitle}>Renovação de IPVA</Text>
-          <Text style={styles.cardDescription}>Atualize o seu IPVA de forma simples.</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={() => {/* Navegação */}}>
-          <Text style={styles.cardTitle}>Transferência de Propriedade</Text>
-          <Text style={styles.cardDescription}>Transfira a propriedade do veículo rapidamente.</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={() => {/* Navegação */}}>
-          <Text style={styles.cardTitle}>Consulta de Débitos</Text>
-          <Text style={styles.cardDescription}>Verifique os débitos do seu veículo.</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={() => {/* Navegação */}}>
-          <Text style={styles.cardTitle}>Descontos e Benefícios</Text>
-          <Text style={styles.cardDescription}>Confira possíveis descontos e benefícios.</Text>
+      <Text style={styles.welcomeText}>Olá, {userName}, Seja Bem-Vindo de Volta</Text>
+
+      <View style={styles.serviceRequestContainer}>
+        <Text style={styles.sectionTitle}>Solicite um serviço:</Text>
+        <TouchableOpacity style={styles.requestButton} onPress={() => { /* Navegação para solicitar serviço */ }}>
+          <Text style={styles.requestButtonText}>Solicitar Serviço</Text>
         </TouchableOpacity>
       </View>
-      
-      <Link href="/login" style={styles.profileLink}>Ir para o Login</Link>
+
+      <View style={styles.servicesContainer}>
+        <Text style={styles.sectionTitle}>Seus Serviços:</Text>
+        {services.length === 0 ? (
+          <Text style={styles.noServicesText}>Você ainda não solicitou nenhum serviço.</Text>
+        ) : (
+          services.map((service, index) => (
+            <TouchableOpacity key={index} style={styles.serviceItem} onPress={() => { /* Navegação para detalhes do serviço */ }}>
+              <Text style={styles.serviceItemText}>{service}</Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+      <Link href="/login">Ir para o Login</Link>
     </ScrollView>
   );
 }
@@ -70,55 +72,66 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    marginTop: 30,
     backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  title: {
-    fontSize: 28,
+  welcomeText: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
     marginBottom: 20,
   },
-  cardContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  card: {
-    width: '45%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
+  serviceRequestContainer: {
+    marginBottom: 30,
     padding: 15,
-    marginBottom: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
     elevation: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  cardTitle: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+    marginBottom: 10,
   },
-  cardDescription: {
-    fontSize: 14,
+  requestButton: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    backgroundColor: '#007bff',
+    alignItems: 'center',
+  },
+  requestButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  servicesContainer: {
+    marginTop: 20,
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  noServicesText: {
+    fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    marginTop: 10,
   },
-  profileLink: {
+  serviceItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginBottom: 10,
+    borderRadius: 5,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  serviceItemText: {
     fontSize: 16,
-    color: '#007bff',
-    textAlign: 'center',
-    marginTop: 20,
+    color: '#333',
   },
 });
