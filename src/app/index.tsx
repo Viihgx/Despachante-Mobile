@@ -4,33 +4,43 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { Link } from 'expo-router';
 
+interface Servico {
+  tipo_servico: string;
+  forma_pagamento: string;
+  status_servico: string;
+  data_solicitacao: string;
+}
+
 export default function HomeScreen() {
-  const [userName, setUserName] = useState('');
-  const [services, setServices] = useState([]); // Inicialmente vazio, a lógica para carregar serviços será adicionada depois
+  const [userName, setUserName] = useState<string>('');
+  const [servicos, setServicos] = useState<Servico[]>([]);
   const API_URL = 'http://192.168.18.20:5000';  // Substitua pela URL do seu backend
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Recupera o token armazenado
         const token = await SecureStore.getItemAsync('userToken');
         if (!token) {
           Alert.alert('Erro', 'Usuário não autenticado');
           return;
         }
 
-        // Faz a requisição para a rota protegida (exemplo para buscar dados do usuário)
-        const response = await axios.get(`${API_URL}/api/user-data`, {
+        const userResponse = await axios.get(`${API_URL}/api/user-data`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
-        // Define o nome do usuário
-        setUserName(response.data.name);
+        setUserName(userResponse.data.name);
 
-        // Aqui você pode fazer outra requisição para buscar os serviços do usuário
-        // setServices(response.data.services); // Isso é só um exemplo
+        const servicosResponse = await axios.get(`${API_URL}/api/meus-servicos`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        setServicos(servicosResponse.data.servicos);
+
       } catch (error) {
         console.error('Erro ao buscar dados do usuário:', error);
         Alert.alert('Erro', 'Não foi possível carregar os dados do usuário');
@@ -41,30 +51,38 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.welcomeText}>Olá, {userName}, Seja Bem-Vindo de Volta</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Olá, {userName}</Text>
+      <Text style={styles.subtitle}>Seja bem-vindo de volta</Text>
 
-      <View style={styles.serviceRequestContainer}>
-        <Text style={styles.sectionTitle}>Solicite um serviço:</Text>
-        <TouchableOpacity style={styles.requestButton} onPress={() => { /* Navegação para solicitar serviço */ }}>
-          <Text style={styles.requestButtonText}>Solicitar Serviço</Text>
+      <View style={styles.solicitarServicoContainer}>
+        <Text style={styles.servicosTitle}>Solicite um serviço:</Text>
+        <TouchableOpacity style={styles.solicitarServicoButton}>
+          <Text style={styles.solicitarServicoText}>Solicitar Serviço</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.servicesContainer}>
-        <Text style={styles.sectionTitle}>Seus Serviços:</Text>
-        {services.length === 0 ? (
-          <Text style={styles.noServicesText}>Você ainda não solicitou nenhum serviço.</Text>
-        ) : (
-          services.map((service, index) => (
-            <TouchableOpacity key={index} style={styles.serviceItem} onPress={() => { /* Navegação para detalhes do serviço */ }}>
-              <Text style={styles.serviceItemText}>{service}</Text>
-            </TouchableOpacity>
-          ))
-        )}
+      <View style={styles.servicosSection}>
+        <Text style={styles.servicosTitle}>Seus Serviços:</Text>
+
+        <ScrollView contentContainerStyle={styles.servicosContainer}>
+          {servicos.length > 0 ? (
+            servicos.map((servico, index) => (
+              <View key={index} style={styles.servicoCard}>
+                <Text style={styles.servicoText}>Tipo de Serviço: {servico.tipo_servico}</Text>
+                <Text style={styles.servicoText}>Forma de Pagamento: {servico.forma_pagamento}</Text>
+                <Text style={styles.servicoText}>Status: {servico.status_servico}</Text>
+                <Text style={styles.servicoText}>Data da Solicitação: {new Date(servico.data_solicitacao).toLocaleDateString()}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.noServicosText}>Você ainda não solicitou nenhum serviço.</Text>
+          )}
+        </ScrollView>
       </View>
-      <Link href="/login">Ir para o Login</Link>
-    </ScrollView>
+
+      <Link href="/login" style={styles.profileLink}>Ir para o Login</Link>
+    </View>
   );
 }
 
@@ -72,66 +90,87 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    marginTop: 30,
+    marginTop: 35,
     backgroundColor: '#f5f5f5',
   },
-  welcomeText: {
-    fontSize: 24,
+  title: {
+    fontSize: 28,
     fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'left',
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#666',
+    textAlign: 'left',
     marginBottom: 20,
   },
-  serviceRequestContainer: {
-    marginBottom: 30,
+  solicitarServicoContainer: {
+    backgroundColor: '#fff',
     padding: 15,
     borderRadius: 10,
-    backgroundColor: '#fff',
+    marginBottom: 20,
     elevation: 3,
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  requestButton: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 25,
+  solicitarServicoButton: {
     backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
     alignItems: 'center',
   },
-  requestButtonText: {
+  solicitarServicoText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  servicesContainer: {
-    marginTop: 20,
+  servicosSection: {
+    backgroundColor: '#fff',
     padding: 15,
     borderRadius: 10,
-    backgroundColor: '#fff',
+    marginBottom: 20,
     elevation: 3,
     borderWidth: 1,
     borderColor: '#ddd',
+    flex: 1,
   },
-  noServicesText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  serviceItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+  servicosTitle: {
+    fontSize: 20,
+    color: '#333',
     marginBottom: 10,
-    borderRadius: 5,
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: '#ddd',
   },
-  serviceItemText: {
+  servicosContainer: {
+    flexGrow: 1,
+  },
+  servicoCard: {
+    width: '100%',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  servicoText: {
     fontSize: 16,
     color: '#333',
   },
+  noServicosText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  profileLink: {
+    fontSize: 16,
+    color: '#007bff',
+    textAlign: 'center',
+    padding: 15,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    marginTop: 10,
+  },
 });
+
