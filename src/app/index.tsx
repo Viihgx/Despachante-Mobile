@@ -1,11 +1,45 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
 import { Link } from 'expo-router';
 
 export default function HomeScreen() {
+  const [userName, setUserName] = useState('');
+  const API_URL = 'http://192.168.18.20:5000';  
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // Recupera o token armazenado
+        const token = await SecureStore.getItemAsync('userToken');
+        if (!token) {
+          Alert.alert('Erro', 'Usuário não autenticado');
+          return;
+        }
+
+        // Faz a requisição para a rota protegida
+        const response = await axios.get(`${API_URL}/api/user-data`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        // Define o nome do usuário
+        setUserName(response.data.name);
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário:', error);
+        Alert.alert('Erro', 'Não foi possível carregar os dados do usuário');
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Bem-vindo ao Despachante IPVA</Text>
+      <Text style={styles.subtitle}>Olá, {userName}</Text>
       <Text style={styles.subtitle}>Escolha um serviço abaixo:</Text>
       
       <View style={styles.cardContainer}>
