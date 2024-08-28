@@ -102,4 +102,37 @@ router.get('/user-data', authenticateToken, async (req, res) => {
   res.status(200).json({ name: data.Nome });
 });
 
+// Rota para buscar os serviços solicitados pelo usuário logado
+router.get('/meus-servicos', authenticateToken, async (req, res) => {
+  const { email } = req.user;
+
+  try {
+    // Buscar o usuário pelo email
+    const { data: usuarioData, error: usuarioError } = await supabase
+      .from('Usuarios')
+      .select('ID')
+      .eq('Email_usuario', email)
+      .single();
+
+    if (usuarioError || !usuarioData) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    // Buscar os serviços solicitados pelo usuário
+    const { data: servicosData, error: servicosError } = await supabase
+      .from('servicoSolicitado')
+      .select('tipo_servico, forma_pagamento, status_servico, data_solicitacao')
+      .eq('id_usuario', usuarioData.ID);
+
+    if (servicosError) {
+      return res.status(500).json({ error: 'Erro ao buscar serviços' });
+    }
+
+    res.status(200).json({ servicos: servicosData });
+  } catch (error) {
+    console.error('Erro ao buscar serviços:', error);
+    res.status(500).json({ error: 'Erro ao buscar serviços' });
+  }
+});
+
 module.exports = router;
