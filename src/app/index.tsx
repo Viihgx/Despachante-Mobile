@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';  // Ícone de menu
+import { Menu, MenuItem } from 'react-native-material-menu'; // Biblioteca de Menu
 
 interface Servico {
   tipo_servico: string;
@@ -14,7 +16,9 @@ interface Servico {
 export default function HomeScreen() {
   const [userName, setUserName] = useState<string>('');
   const [servicos, setServicos] = useState<Servico[]>([]);
+  const [menuVisible, setMenuVisible] = useState(false); // Controla a visibilidade do menu
   const API_URL = 'http://192.168.18.20:5000';  // Substitua pela URL do seu backend
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -50,8 +54,32 @@ export default function HomeScreen() {
     fetchUserData();
   }, []);
 
+  const handleLogout = async () => {
+    await SecureStore.deleteItemAsync('userToken'); // Remove o token
+    router.push('/login'); // Redireciona para a tela de login
+  };
+
+  const toggleMenu = () => {
+    setMenuVisible(!menuVisible);
+  };
+
   return (
     <View style={styles.container}>
+      {/* Ícone de menu no canto superior direito */}
+      <View style={styles.menuContainer}>
+        <Menu
+          visible={menuVisible}
+          anchor={
+            <TouchableOpacity onPress={toggleMenu}>
+              <MaterialIcons name="menu" size={28} color="black" />
+            </TouchableOpacity>
+          }
+          onRequestClose={toggleMenu}
+        >
+          <MenuItem onPress={handleLogout}>Sign Out</MenuItem>
+        </Menu>
+      </View>
+
       <Text style={styles.title}>Olá, {userName}</Text>
       <Text style={styles.subtitle}>Seja bem-vindo de volta</Text>
 
@@ -63,7 +91,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.servicosSection}>
-        <Text style={styles.servicosTitle}>Seus Serviços:</Text>
+        <Text style={styles.servicosTitle}>Meus Serviços:</Text>
 
         <ScrollView contentContainerStyle={styles.servicosContainer}>
           {servicos.length > 0 ? (
@@ -92,6 +120,10 @@ const styles = StyleSheet.create({
     padding: 20,
     marginTop: 35,
     backgroundColor: '#f5f5f5',
+  },
+  menuContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 10,
   },
   title: {
     fontSize: 28,
@@ -173,4 +205,3 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
-
