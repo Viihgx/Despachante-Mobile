@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
-import { Link, useRouter  } from 'expo-router';
+import * as SecureStore from 'expo-secure-store'; // SecureStore para armazenar o token
+import { Link, useRouter } from 'expo-router';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const API_URL = 'http://192.168.18.20:5000';
+  const API_URL = 'http://192.168.18.20:5000';  
   const router = useRouter();
 
   const handleLogin = async () => {
     try {
       const response = await axios.post(`${API_URL}/api/login`, { email, senha });
       if (response.data.message === 'Login bem-sucedido') {
-        router.push('/');
+        // Armazenando o token JWT de forma segura
+        await SecureStore.setItemAsync('userToken', response.data.token);
+        router.push('/');  // Redireciona para a tela principal após o login bem-sucedido
       }
     } catch (error: any) {
-      console.error('Erro no login:', error); // Log no console para debugging
+      console.error('Erro no login:', error);
       Alert.alert('Erro de autenticação', error.response?.data?.error || error.message || 'Erro desconhecido');
     }
   };
