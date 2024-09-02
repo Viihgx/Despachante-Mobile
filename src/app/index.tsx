@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { Link, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';  // Ícone de menu
-import { Menu, MenuItem } from 'react-native-material-menu'; // Biblioteca de Menu
+import { Menu, MenuItem } from 'react-native-material-menu'; 
 
 interface Servico {
   tipo_servico: string;
   forma_pagamento: string;
   status_servico: string;
   data_solicitacao: string;
+  file_pdfs: string[]; 
 }
 
 export default function HomeScreen() {
@@ -26,6 +27,7 @@ export default function HomeScreen() {
         const token = await SecureStore.getItemAsync('userToken');
         if (!token) {
           Alert.alert('Erro', 'Usuário não autenticado');
+          router.push('/login'); //tela login
           return;
         }
 
@@ -43,7 +45,27 @@ export default function HomeScreen() {
           }
         });
 
-        setServicos(servicosResponse.data.servicos);
+        // console.log('Dados dos serviços:', servicosResponse.data.servicos);
+
+        // Certifica que file_pdfs seja sempre um array
+        const servicosComPdfs = servicosResponse.data.servicos.map((servico: any) => {
+          let file_pdfs = servico.file_pdfs;
+
+          if (typeof file_pdfs === 'string') {
+            // Se file_pdfs for uma string, converta para um array
+            file_pdfs = [file_pdfs];
+          } else if (!Array.isArray(file_pdfs)) {
+            // Se não for array, defina como um array vazio
+            file_pdfs = [];
+          }
+
+          return {
+            ...servico,
+            file_pdfs,
+          };
+        });
+
+        setServicos(servicosComPdfs);
 
       } catch (error) {
         console.error('Erro ao buscar dados do usuário:', error);
@@ -63,6 +85,10 @@ export default function HomeScreen() {
     setMenuVisible(!menuVisible);
   };
 
+  const handleDownload = (url: string) => {
+    Linking.openURL(url);
+  };
+
   return (
     <View style={styles.container}>
       {/* Ícone de menu no canto superior direito */}
@@ -76,7 +102,7 @@ export default function HomeScreen() {
           }
           onRequestClose={toggleMenu}
         >
-          <MenuItem onPress={handleLogout}>Sign Out</MenuItem>
+          <MenuItem onPress={handleLogout}>Sair</MenuItem>
         </Menu>
       </View>
 
@@ -101,6 +127,20 @@ export default function HomeScreen() {
                 <Text style={styles.servicoText}>Forma de Pagamento: {servico.forma_pagamento}</Text>
                 <Text style={styles.servicoText}>Status: {servico.status_servico}</Text>
                 <Text style={styles.servicoText}>Data da Solicitação: {new Date(servico.data_solicitacao).toLocaleDateString()}</Text>
+                
+                {servico.file_pdfs.length > 0 && (
+                  <View>
+                    {servico.file_pdfs.map((fileUrl, fileIndex) => (
+                      <TouchableOpacity
+                        key={fileIndex}
+                        style={styles.downloadButton}
+                        onPress={() => handleDownload(fileUrl)}
+                      >
+                        <Text style={styles.downloadText}>Baixar PDF {fileIndex + 1}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
             ))
           ) : (
@@ -203,5 +243,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     borderRadius: 10,
     marginTop: 10,
+  },
+  downloadButton: {
+    backgroundColor: '#007bff',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  downloadText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });
