@@ -100,3 +100,59 @@ const UserProfile = () => {
           placeholder="Telefone"
         />
       </View>
+     {/* Seção de "Meus veículos" */}
+     <Text style={styles.subtitle}>Meus veículos</Text>
+     <View style={styles.menuContainer}>
+       <TouchableOpacity onPress={() => setModalVisible(true)}>
+         <Ionicons name="add-circle-outline" size={24} color="black" />
+       </TouchableOpacity>
+     </View>
+
+     {/* Lista de veículos */}
+     {vehicles.length > 0 ? (
+       vehicles.map((vehicle, index) => (
+         <View key={index} style={styles.vehicleContainer}>
+           <Text style={styles.placa}>{vehicle.placa.toUpperCase()}</Text>
+           {vehicle.nome ? <Text style={styles.vehicleName}>{vehicle.nome}</Text> : null}
+         </View>
+       ))
+     ) : (
+       <Text style={styles.noVehicleText}>Nenhum veículo adicionado.</Text>
+     )}
+
+     {/* Modal para adicionar veículos */}
+     <Modal visible={modalVisible} transparent={true} animationType="slide">
+       <View style={styles.modalContainer}>
+         <View style={styles.modalContent}>
+           <Text style={styles.modalTitle}>Adicionar Veículo</Text>
+           <TextInput
+             style={styles.input}
+             value={vehicleData.placa}
+             onChangeText={(text) => handleVehicleChange('placa', text)}
+             placeholder="Placa do Veículo (Obrigatório)"
+           />
+           <TextInput
+             style={styles.input}
+             value={vehicleData.nome}
+             onChangeText={(text) => handleVehicleChange('nome', text)}
+             placeholder="Nome do Veículo (Opcional)"
+           />
+           <Pressable style={styles.button} onPress={handleAddVehicle}>
+             <Text style={styles.buttonText}>Salvar</Text>
+           </Pressable>
+           <Pressable style={[styles.button, { backgroundColor: 'red' }]} onPress={() => setModalVisible(false)}>
+             <Text style={styles.buttonText}>Cancelar</Text>
+           </Pressable>
+         </View>
+       </View>
+     </Modal>
+
+     {/* Botão para voltar à tela principal (index) */}
+     <TouchableOpacity style={styles.backButton} onPress={() => router.push('/')}>
+       <Text style={styles.backButtonText}>Voltar para Home</Text>
+     </TouchableOpacity>
+   </ScrollView>
+ );
+};
+
+export default UserProfile;
