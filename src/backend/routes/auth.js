@@ -118,10 +118,10 @@ router.get('/meus-servicos', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    // Buscar os serviços solicitados pelo usuário
+    // Buscar os serviços solicitados pelo usuário, incluindo os campos adicionais nome_completo e placa_do_veiculo
     const { data: servicosData, error: servicosError } = await supabase
       .from('servicoSolicitado')
-      .select('tipo_servico, forma_pagamento, status_servico, data_solicitacao, file_pdfs')
+      .select('tipo_servico, forma_pagamento, status_servico, data_solicitacao, file_pdfs, nome_completo, placa_do_veiculo') // Adicionando os campos nome_completo e placa_do_veiculo
       .eq('id_usuario', usuarioData.ID);
 
     if (servicosError) {
@@ -134,5 +134,6 @@ router.get('/meus-servicos', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Erro ao buscar serviços' });
   }
 });
+
 
 module.exports = router;
