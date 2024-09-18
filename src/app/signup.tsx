@@ -1,24 +1,70 @@
-import React from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
-import { Link } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import axios from 'axios';
+import { Link, useRouter } from 'expo-router';
 
 export default function SignUpScreen() {
+  const [nome, setNome] = useState('');  // Novo estado para o nome
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [confirmSenha, setConfirmSenha] = useState('');
+  const API_URL = 'http://192.168.18.20:5000';
+  const router = useRouter();
+
+  const handleSignUp = async () => {
+    if (senha !== confirmSenha) {
+      Alert.alert('Erro', 'As senhas não correspondem');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API_URL}/api/signup`, { nome, email, senha });
+      if (response.data.message === 'Usuário criado com sucesso') {
+        Alert.alert('Sucesso', 'Conta criada com sucesso!');
+        router.push('/login'); // Redireciona para a tela de login após o cadastro
+      }
+    } catch (error: any) {
+      console.error('Erro no cadastro:', error);
+      Alert.alert('Erro no cadastro', error.response?.data?.error || error.message || 'Erro desconhecido');
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Crie sua Conta</Text>
+      <Text style={styles.title}>Criar Conta</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Nome"
+        value={nome}
+        onChangeText={setNome}
+      />
       <TextInput
         style={styles.input}
         placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
       />
       <TextInput
         style={styles.input}
         placeholder="Senha"
+        value={senha}
+        onChangeText={setSenha}
         secureTextEntry
       />
-      <Button title="Cadastrar" onPress={() => {}} color="#007bff" />
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Já tem uma conta?</Text>
-        <Link href="/login" style={styles.link}>Fazer Login</Link>
+      <TextInput
+        style={styles.input}
+        placeholder="Confirmar Senha"
+        value={confirmSenha}
+        onChangeText={setConfirmSenha}
+        secureTextEntry
+      />
+      <Button title="Criar Conta" onPress={handleSignUp} />
+
+      <View style={styles.loginContainer}>
+      <Text style={styles.loginText}>Já tem conta?</Text>
+        <Link href="/login" style={styles.loginLink}>
+          Faça Login
+        </Link>
       </View>
     </View>
   );
@@ -27,35 +73,39 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: 20,
+    justifyContent: 'center',
     backgroundColor: '#f5f5f5',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: 20,
   },
   input: {
-    height: 50,
+    height: 40,
     borderColor: '#ddd',
     borderWidth: 1,
     borderRadius: 5,
-    paddingHorizontal: 15,
-    marginBottom: 15,
+    paddingHorizontal: 10,
+    marginBottom: 10,
     backgroundColor: '#fff',
   },
-  footer: {
+  loginContainer: {
     marginTop: 20,
     alignItems: 'center',
   },
-  footerText: {
+  loginText: {
+    alignItems: 'center',
+    justifyContent: 'center',
     fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
-  link: {
-    marginTop: 10,
-    fontSize: 16,
+  loginLink: {
+    marginTop: 5,
     color: '#007bff',
+    fontSize: 16,
   },
 });

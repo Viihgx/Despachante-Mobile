@@ -4,14 +4,14 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { Link, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';  // Ícone de menu
-import { Menu, MenuItem } from 'react-native-material-menu'; // Biblioteca de Menu
+import { Menu, MenuItem } from 'react-native-material-menu'; 
 
 interface Servico {
   tipo_servico: string;
   forma_pagamento: string;
   status_servico: string;
   data_solicitacao: string;
-  file_pdfs: string[]; // Array de URLs dos PDFs
+  file_pdfs: string[]; 
 }
 
 export default function HomeScreen() {
@@ -47,7 +47,7 @@ export default function HomeScreen() {
 
         // console.log('Dados dos serviços:', servicosResponse.data.servicos);
 
-        // Certifique-se de que file_pdfs seja sempre um array
+        // Certifica que file_pdfs seja sempre um array
         const servicosComPdfs = servicosResponse.data.servicos.map((servico: any) => {
           let file_pdfs = servico.file_pdfs;
 
