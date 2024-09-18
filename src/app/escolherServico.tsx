@@ -1,27 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 
 export default function EscolherServicoScreen() {
   const router = useRouter();
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+
+  const handleServiceSelection = (service: string) => {
+    setSelectedService(service);
+    router.push({
+      pathname: '/informationService',
+      params: { service },
+    });
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Selecione um Serviço</Text>
 
-      <TouchableOpacity style={styles.card}>
+      <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection('Primeiro Emplacamento')}>
         <Text style={styles.cardText}>Primeiro Emplacamento</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.card}>
+      <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection('Placa Mercosul')}>
         <Text style={styles.cardText}>Placa Mercosul</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.card}>
+      <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection('Segunda Via')}>
         <Text style={styles.cardText}>Segunda Via</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.card}>
+      <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection('Transferência Veicular')}>
         <Text style={styles.cardText}>Transferência Veicular</Text>
       </TouchableOpacity>
 
