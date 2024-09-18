@@ -130,7 +130,7 @@ export default function HomeScreen() {
 
       <View style={styles.solicitarServicoContainer}>
         <Text style={styles.servicosTitle}>Solicite um serviço:</Text>
-        <TouchableOpacity style={styles.solicitarServicoButton}>
+        <TouchableOpacity style={styles.solicitarServicoButton} onPress={() => router.push('/escolherServico')}>
           <Text style={styles.solicitarServicoText}>Solicitar Serviço</Text>
         </TouchableOpacity>
       </View>
