@@ -25,7 +25,7 @@ export default function EscolherServicoScreen() {
         <Text style={styles.cardText}>Transferência Veicular</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.backButton}>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>Voltar</Text>
       </TouchableOpacity>
     </ScrollView>
