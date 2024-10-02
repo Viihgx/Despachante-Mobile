@@ -134,5 +134,93 @@ router.get('/meus-servicos', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Erro ao buscar serviços' });
   }
 });
+// Rota para buscar os dados do usuário
+app.get('/api/user-data-usuario', authenticateToken, async (req, res) => {
+  const { email } = req.user;
+
+  const { data, error } = await supabase
+    .from('Usuarios')
+    .select('Nome, Email_usuario, Numero_celular')
+    .eq('Email_usuario', email)
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: 'Erro ao buscar dados do usuário' });
+  }
+
+  res.status(200).json({ name: data.Nome, email: data.Email_usuario, phone: data.Numero_celular });
+});
+
+// Rota para buscar veículos do usuário
+app.get('/api/veiculos', authenticateToken, async (req, res) => {
+  const { email } = req.user;
+
+  const { data: usuarioData, error: usuarioError } = await supabase
+    .from('Usuarios')
+    .select('ID')
+    .eq('Email_usuario', email)
+    .single();
+
+  if (usuarioError || !usuarioData) {
+    return res.status(404).json({ error: 'Usuário não encontrado' });
+  }
+
+  const { data: veiculosData, error: veiculosError } = await supabase
+    .from('Veiculos')
+    .select('id, placa_veiculo, nome_veiculo')
+    .eq('usuario_id', usuarioData.ID);
+
+  if (veiculosError) {
+    return res.status(500).json({ error: 'Erro ao buscar veículos' });
+  }
+
+  res.status(200).json({ vehicles: veiculosData });
+});
+
+// Rota para adicionar veículo
+app.post('/api/add-veiculo', authenticateToken, async (req, res) => {
+  const { placa, nome } = req.body;
+  const { email } = req.user;
+
+  const { data: usuarioData, error: usuarioError } = await supabase
+    .from('Usuarios')
+    .select('ID')
+    .eq('Email_usuario', email)
+    .single();
+
+  if (usuarioError || !usuarioData) {
+    return res.status(404).json({ error: 'Usuário não encontrado' });
+  }
+
+  const { error: insertError } = await supabase
+    .from('Veiculos')
+    .insert([{ usuario_id: usuarioData.ID, placa_veiculo: placa, nome_veiculo: nome }]);
+
+  if (insertError) {
+    return res.status(500).json({ error: 'Erro ao adicionar veículo' });
+  }
+
+  res.status(200).json({ message: 'Veículo adicionado com sucesso' });
+});
+
+// Rota para editar os dados do usuário
+app.put('/api/update-user', authenticateToken, async (req, res) => {
+  const { name, email, phone } = req.body;
+  const { email: currentEmail } = req.user;
+
+  const { error } = await supabase
+    .from('Usuarios')
+    .update({ Nome: name, Email_usuario: email, Numero_celular: phone })
+    .eq('Email_usuario', currentEmail);
+
+  if (error) {
+    return res.status(500).json({ error: 'Erro ao atualizar dados do usuário' });
+  }
+
+  res.status(200).json({ message: 'Dados atualizados com sucesso' });
+});
 
 module.exports = router;
+module.exports = router;
+
+
