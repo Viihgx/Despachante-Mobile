@@ -195,7 +195,7 @@ export default function HomeScreen() {
         </Animated.View>
       </Modal>
 
-      <Link href="/login" style={styles.profileLink}>
+      <Link href="/user" style={styles.profileLink}>
         Ir para o Login
       </Link>
     </View>
