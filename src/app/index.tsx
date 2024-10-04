@@ -196,7 +196,11 @@ export default function HomeScreen() {
       </Modal>
 
       <Link href="/user" style={styles.profileLink}>
+<<<<<<< HEAD
         Ir para o Login
+=======
+        Ir para pagina de usuario
+>>>>>>> 2efbeb9df2decf0d8c5c297b782e84f5ac8ffa70
       </Link>
     </View>
   );
