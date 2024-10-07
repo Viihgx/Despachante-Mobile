@@ -7,7 +7,7 @@ import { Link, useRouter } from 'expo-router';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const API_URL = 'http://192.168.18.20:5000';  
+  const API_URL = 'http://10.0.2.2:5000';  
   const router = useRouter();
 
   const handleLogin = async () => {

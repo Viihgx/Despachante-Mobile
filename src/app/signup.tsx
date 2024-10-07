@@ -8,7 +8,7 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmSenha, setConfirmSenha] = useState('');
-  const API_URL = 'http://192.168.18.20:5000';
+  const API_URL = 'http://10.0.2.2:5000';
   const router = useRouter();
 
   const handleSignUp = async () => {
