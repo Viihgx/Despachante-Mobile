@@ -135,7 +135,7 @@ router.get('/meus-servicos', authenticateToken, async (req, res) => {
   }
 });
 // Rota para buscar os dados do usuário
-app.get('/api/user-data-usuario', authenticateToken, async (req, res) => {
+router.get('/api/user-data-usuario', authenticateToken, async (req, res) => {
   const { email } = req.user;
 
   const { data, error } = await supabase
@@ -152,7 +152,7 @@ app.get('/api/user-data-usuario', authenticateToken, async (req, res) => {
 });
 
 // Rota para buscar veículos do usuário
-app.get('/api/veiculos', authenticateToken, async (req, res) => {
+router.get('/api/veiculos', authenticateToken, async (req, res) => {
   const { email } = req.user;
 
   const { data: usuarioData, error: usuarioError } = await supabase
@@ -178,7 +178,7 @@ app.get('/api/veiculos', authenticateToken, async (req, res) => {
 });
 
 // Rota para adicionar veículo
-app.post('/api/add-veiculo', authenticateToken, async (req, res) => {
+router.post('/api/add-veiculo', authenticateToken, async (req, res) => {
   const { placa, nome } = req.body;
   const { email } = req.user;
 
@@ -204,7 +204,7 @@ app.post('/api/add-veiculo', authenticateToken, async (req, res) => {
 });
 
 // Rota para editar os dados do usuário
-app.put('/api/update-user', authenticateToken, async (req, res) => {
+router.put('/api/update-user', authenticateToken, async (req, res) => {
   const { name, email, phone } = req.body;
   const { email: currentEmail } = req.user;
 
