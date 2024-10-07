@@ -2,6 +2,21 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const fs = require('fs');
+
+// Configuração do multer para upload de arquivos
+const storage = multer.memoryStorage();  // Armazena os arquivos na memória em vez de no disco
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);  // Aceitar apenas PDFs
+    } else {
+      cb(new Error('Apenas arquivos PDF são permitidos'), false);
+    }
+  },
+});
 
 const SECRET_KEY = 'wS&erhPk#65m]jDC7N/Qa<';  // chave secreta segura
 
@@ -70,6 +85,8 @@ function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
+  console.log('Token recebido:', token); 
+  
   if (!token) return res.status(401).json({ error: 'Acesso negado. Nenhum token fornecido.' });
 
   jwt.verify(token, SECRET_KEY, (err, user) => {
@@ -220,8 +237,100 @@ router.put('/api/update-user', authenticateToken, async (req, res) => {
   res.status(200).json({ message: 'Dados atualizados com sucesso' });
 });
 
+//ENVIAR PDF 0.1
+// Middleware de Autenticação para Proteger Rotas
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-module.exports = router;
+  if (!token) return res.status(401).json({ error: 'Acesso negado. Nenhum token fornecido.' });
+
+  jwt.verify(token, SECRET_KEY, (err, user) => {
+    if (err) return res.status(403).json({ error: 'Token inválido.' });
+
+    req.user = user;  // Armazena as informações do usuário no request
+    next();  // Passa para o próximo middleware ou rota
+  });
+}
+
+// Rota de teste de autenticação
+router.post('/test-auth', authenticateToken, (req, res) => {
+  return res.status(200).json({ message: `Autenticação bem-sucedida para ${req.user.email}` });
+});
+
+// Rota para Upload de PDFs e vinculação ao serviço
+router.post('/upload-pdfs', authenticateToken, upload.array('pdfFiles', 10), async (req, res) => {
+  console.log('Usuário autenticado:', req.user)
+  const { email } = req.user;
+  const { nomeCompleto, placaVeiculo, nomeVeiculo } = req.body;
+  const files = req.files;  // Os arquivos PDFs enviados pelo frontend
+  
+  if (!files || files.length === 0) {
+    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  }
+
+  try {
+    // Buscar o ID do usuário pelo email
+    const { data: usuarioData, error: usuarioError } = await supabase
+      .from('Usuarios')
+      .select('ID')
+      .eq('Email_usuario', email)
+      .single();
+
+    if (usuarioError || !usuarioData) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    const idUsuario = usuarioData.ID;
+    const pdfLinks = [];
+
+    // Iterar sobre os arquivos e fazer upload para o Supabase Storage
+    for (const file of files) {
+      console.log(`Processando arquivo: ${file.originalname}`);
+
+      const fileContent = file.buffer; // Usando o buffer em vez de ler o arquivo
+
+      // Upload para o Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('arquivoPdf')
+        .upload(`uploads/${file.originalname}`, fileContent, {
+          contentType: 'application/pdf',
+        });
+
+      if (error) {
+        console.error(`Erro ao fazer upload do arquivo: ${file.originalname}`, error);
+        throw new Error(`Erro ao fazer upload do arquivo: ${file.originalname}`);
+      }
+
+      // Gerar o link público para o PDF
+      const publicUrl = supabase.storage.from('arquivoPdf').getPublicUrl(`uploads/${file.originalname}`).data.publicUrl;
+      pdfLinks.push(publicUrl); // Armazena o link do PDF
+
+      console.log(`Upload bem-sucedido: ${file.originalname}`);
+    }
+
+    // Atualizar a tabela 'servicoSolicitado' com o link dos PDFs
+    const { data: updateData, error: updateError } = await supabase
+      .from('servicoSolicitado')
+      .update({ 
+        file_pdfs: pdfLinks,
+        nome_completo: nomeCompleto,
+        placa_do_veiculo: placaVeiculo,
+      })
+      .eq('id_usuario', idUsuario)
+      .eq('placa_do_veiculo', placaVeiculo);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    res.status(200).json({ message: 'PDFs enviados e vinculados com sucesso', pdfLinks });
+  } catch (error) {
+    console.error('Erro ao fazer upload de PDFs:', error);
+    res.status(500).json({ error: 'Erro ao fazer upload de PDFs' });
+  }
+});
+
 module.exports = router;
 
 
