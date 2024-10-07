@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router'; // Corrigido o import
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function InformationService() {
   const router = useRouter();
-  const { service } = useLocalSearchParams(); // Corrigido para useLocalSearchParams
+  const { service, token } = useLocalSearchParams();
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [placaCarro, setPlacaCarro] = useState('');
   const [nomeVeiculo, setNomeVeiculo] = useState('');
@@ -14,8 +14,11 @@ export default function InformationService() {
       Alert.alert('Erro', 'Por favor, preencha todos os campos');
       return;
     }
-
-    Alert.alert('Sucesso', 'Serviço solicitado com sucesso!');
+    
+    router.push({
+      pathname: '/uploadPdf',
+      params: { service, nomeCompleto, placaCarro, nomeVeiculo, token },
+    });
   };
 
   return (

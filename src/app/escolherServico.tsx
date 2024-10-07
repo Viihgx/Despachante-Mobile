@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function EscolherServicoScreen() {
   const router = useRouter();
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const { token } = useLocalSearchParams();
 
   const handleServiceSelection = (service: string) => {
-    setSelectedService(service);
     router.push({
       pathname: '/informationService',
-      params: { service },
+      params: { service, token },
     });
   };
 

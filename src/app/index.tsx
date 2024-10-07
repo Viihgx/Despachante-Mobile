@@ -19,11 +19,11 @@ interface Servico {
 export default function HomeScreen() {
   const [userName, setUserName] = useState<string>('');
   const [servicos, setServicos] = useState<Servico[]>([]);
-  const [menuVisible, setMenuVisible] = useState(false); // Controla a visibilidade do menu
-  const [modalVisible, setModalVisible] = useState(false); // Controla a visibilidade do modal
-  const [selectedServico, setSelectedServico] = useState<Servico | null>(null); // Armazena o serviço selecionado
-  const [fadeAnim] = useState(new Animated.Value(0)); // Para animação do modal
-  const API_URL = 'http://192.168.18.20:5000'; // Substitua pela URL do seu backend
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedServico, setSelectedServico] = useState<Servico | null>(null);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const API_URL = 'http://10.0.2.2:5000';
   const router = useRouter();
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function HomeScreen() {
         const token = await SecureStore.getItemAsync('userToken');
         if (!token) {
           Alert.alert('Erro', 'Usuário não autenticado');
-          router.push('/login'); //tela login
+          router.push('/login'); 
           return;
         }
 
@@ -76,12 +76,31 @@ export default function HomeScreen() {
   }, []);
 
   const handleLogout = async () => {
-    await SecureStore.deleteItemAsync('userToken'); // Remove o token
-    router.push('/login'); // Redireciona para a tela de login
+    await SecureStore.deleteItemAsync('userToken'); 
+    router.push('/login'); 
   };
 
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
+  };
+
+  const solicitarServico = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('userToken');
+      
+      if (!token) {
+        Alert.alert('Erro', 'Usuário não autenticado.');
+        router.push('/login');
+      } else {
+        router.push({
+          pathname: '/escolherServico',
+          params: { token }, 
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao verificar autenticação:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao verificar a autenticação.');
+    }
   };
 
   const handleDownload = (url: string) => {
@@ -130,7 +149,7 @@ export default function HomeScreen() {
 
       <View style={styles.solicitarServicoContainer}>
         <Text style={styles.servicosTitle}>Solicite um serviço:</Text>
-        <TouchableOpacity style={styles.solicitarServicoButton} onPress={() => router.push('/escolherServico')}>
+        <TouchableOpacity style={styles.solicitarServicoButton} onPress={solicitarServico}>
           <Text style={styles.solicitarServicoText}>Solicitar Serviço</Text>
         </TouchableOpacity>
       </View>
@@ -158,7 +177,6 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {/* Modal para exibir os detalhes do serviço */}
       <Modal visible={modalVisible} transparent={true} animationType="fade">
         <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
           {selectedServico && (
@@ -295,7 +313,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fundo escuro translúcido
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: '#fff',
