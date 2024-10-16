@@ -20,7 +20,7 @@ const UserProfile = () => {
   const [vehicleData, setVehicleData] = useState<Vehicle>({ placa: '', nome: '' });
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const router = useRouter();
-  const API_URL = 'http://192.168.0.20:5001/api'; // Ajuste a URL do seu backend
+  const API_URL = 'http://192.168.0.18:5001/api'; // Ajuste a URL do seu backend
   
   useEffect(() => {
     fetchUserData();
@@ -53,7 +53,11 @@ const UserProfile = () => {
       const response = await axios.get(`${API_URL}/api/veiculos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setVehicles(response.data.vehicles); // Recebendo o array de veículos
+      if (response.data.vehicles && response.data.vehicles.length > 0) {
+        setVehicles(response.data.vehicles); // Recebendo o array de veículos
+      } else {
+        setVehicles([]); // Se não houver veículos
+      }
     } catch (error) {
       console.error('Erro ao buscar veículos:', error);
       setVehicles([]);
@@ -151,16 +155,18 @@ const UserProfile = () => {
       </View>
 
       {vehicles.length > 0 ? (
-  vehicles.map((vehicle, index) => (
-    <View key={index} style={styles.vehicleContainer}>
-      <Text style={styles.placa}>{vehicle.placa ? vehicle.placa.toUpperCase() : 'Placa não disponível'}</Text>
-      {vehicle.nome ? <Text style={styles.vehicleName}>{vehicle.nome}</Text> : null}
-      <TouchableOpacity onPress={() => handleDeleteVehicle(vehicle.id!)} >
-        <Ionicons name="trash" size={24} color="red" />
-      </TouchableOpacity>
-    </View>
-  ))
-) : null}
+        vehicles.map((vehicle, index) => (
+          <View key={index} style={styles.vehicleContainer}>
+            <Text style={styles.placa}>{vehicle.placa ? vehicle.placa.toUpperCase() : 'Placa não disponível'}</Text>
+            {vehicle.nome ? <Text style={styles.vehicleName}>{vehicle.nome}</Text> : null}
+            <TouchableOpacity onPress={() => handleDeleteVehicle(vehicle.id!)} >
+              <Ionicons name="trash" size={24} color="red" />
+            </TouchableOpacity>
+          </View>
+        ))
+      ) : (
+        <Text style={styles.noVehicleText}>Não há veículos cadastrados.</Text>
+      )}
 
       <Modal visible={modalVisible} transparent={true} animationType="slide">
         <View style={styles.modalContainer}>
@@ -169,8 +175,9 @@ const UserProfile = () => {
             <TextInput
               style={styles.input}
               value={vehicleData.placa}
-              onChangeText={(text) => setVehicleData({ ...vehicleData, placa: text })}
+              onChangeText={(text) => setVehicleData({ ...vehicleData, placa: text.toUpperCase() })}
               placeholder="Placa do Veículo (Obrigatório)"
+              keyboardType="default" // Permite letras e números
             />
             <TextInput
               style={styles.input}
@@ -249,6 +256,11 @@ const styles = StyleSheet.create({
   vehicleName: {
     fontSize: 16,
     color: '#666',
+  },
+  noVehicleText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
