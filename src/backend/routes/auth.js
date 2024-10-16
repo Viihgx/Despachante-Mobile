@@ -203,6 +203,27 @@ app.post('/api/add-veiculo', authenticateToken, async (req, res) => {
   res.status(200).json({ message: 'Veículo adicionado com sucesso' });
 });
 
+// Rota para excluir veículo
+router.delete('/api/delete-veiculo/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('Veiculos')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return res.status(500).json({ error: 'Erro ao excluir veículo' });
+    }
+
+    res.status(200).json({ message: 'Veículo excluído com sucesso' });
+  } catch (error) {
+    console.error('Erro ao excluir veículo:', error);
+    res.status(500).json({ error: 'Erro ao excluir veículo' });
+  }
+});
+
 // Rota para editar os dados do usuário
 app.put('/api/update-user', authenticateToken, async (req, res) => {
   const { name, email, phone } = req.body;
