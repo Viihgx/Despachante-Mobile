@@ -260,11 +260,13 @@ router.post('/test-auth', authenticateToken, (req, res) => {
 
 // Rota para Upload de PDFs e vinculação ao serviço
 router.post('/upload-pdfs', authenticateToken, upload.array('pdfFiles', 10), async (req, res) => {
-  console.log('Usuário autenticado:', req.user)
+  console.log('Usuário autenticado:', req.user);
+  console.log('Arquivos recebidos:', req.files);
+
   const { email } = req.user;
   const { nomeCompleto, placaVeiculo, nomeVeiculo } = req.body;
-  const files = req.files;  // Os arquivos PDFs enviados pelo frontend
-  
+  const files = req.files;
+
   if (!files || files.length === 0) {
     return res.status(400).json({ error: 'Nenhum arquivo enviado' });
   }
@@ -276,39 +278,43 @@ router.post('/upload-pdfs', authenticateToken, upload.array('pdfFiles', 10), asy
       .select('ID')
       .eq('Email_usuario', email)
       .single();
-
+  
     if (usuarioError || !usuarioData) {
+      console.error('Erro ao buscar usuário:', usuarioError);
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
-
+  
     const idUsuario = usuarioData.ID;
     const pdfLinks = [];
-
+  
     // Iterar sobre os arquivos e fazer upload para o Supabase Storage
     for (const file of files) {
       console.log(`Processando arquivo: ${file.originalname}`);
-
-      const fileContent = file.buffer; // Usando o buffer em vez de ler o arquivo
-
+  
+      const fileContent = file.buffer;
+  
+      // Gerar um nome único para o arquivo (por exemplo, com timestamp)
+      const uniqueFileName = `${Date.now()}_${file.originalname}`;
+  
       // Upload para o Supabase Storage
       const { data, error } = await supabase.storage
         .from('arquivoPdf')
-        .upload(`uploads/${file.originalname}`, fileContent, {
+        .upload(`uploads/${uniqueFileName}`, fileContent, {
           contentType: 'application/pdf',
         });
-
+  
       if (error) {
         console.error(`Erro ao fazer upload do arquivo: ${file.originalname}`, error);
-        throw new Error(`Erro ao fazer upload do arquivo: ${file.originalname}`);
+        return res.status(500).json({ error: `Erro ao fazer upload do arquivo: ${file.originalname}` });
       }
-
+  
       // Gerar o link público para o PDF
-      const publicUrl = supabase.storage.from('arquivoPdf').getPublicUrl(`uploads/${file.originalname}`).data.publicUrl;
+      const publicUrl = supabase.storage.from('arquivoPdf').getPublicUrl(`uploads/${uniqueFileName}`).data.publicUrl;
       pdfLinks.push(publicUrl); // Armazena o link do PDF
-
+  
       console.log(`Upload bem-sucedido: ${file.originalname}`);
     }
-
+  
     // Atualizar a tabela 'servicoSolicitado' com o link dos PDFs
     const { data: updateData, error: updateError } = await supabase
       .from('servicoSolicitado')
@@ -319,16 +325,16 @@ router.post('/upload-pdfs', authenticateToken, upload.array('pdfFiles', 10), asy
       })
       .eq('id_usuario', idUsuario)
       .eq('placa_do_veiculo', placaVeiculo);
-
+  
     if (updateError) {
       throw new Error(updateError.message);
     }
-
+  
     res.status(200).json({ message: 'PDFs enviados e vinculados com sucesso', pdfLinks });
   } catch (error) {
     console.error('Erro ao fazer upload de PDFs:', error);
     res.status(500).json({ error: 'Erro ao fazer upload de PDFs' });
-  }
+  }  
 });
 
 module.exports = router;
