@@ -151,16 +151,16 @@ const UserProfile = () => {
       </View>
 
       {vehicles.length > 0 ? (
-        vehicles.map((vehicle, index) => (
-          <View key={index} style={styles.vehicleContainer}>
-            <Text style={styles.placa}>{vehicle.placa.toUpperCase()}</Text>
-            {vehicle.nome ? <Text style={styles.vehicleName}>{vehicle.nome}</Text> : null}
-            <TouchableOpacity onPress={() => handleDeleteVehicle(vehicle.id!)}>
-              <Ionicons name="trash" size={24} color="red" />
-            </TouchableOpacity>
-          </View>
-        ))
-      ) : null}
+  vehicles.map((vehicle, index) => (
+    <View key={index} style={styles.vehicleContainer}>
+      <Text style={styles.placa}>{vehicle.placa ? vehicle.placa.toUpperCase() : 'Placa não disponível'}</Text>
+      {vehicle.nome ? <Text style={styles.vehicleName}>{vehicle.nome}</Text> : null}
+      <TouchableOpacity onPress={() => handleDeleteVehicle(vehicle.id!)} >
+        <Ionicons name="trash" size={24} color="red" />
+      </TouchableOpacity>
+    </View>
+  ))
+) : null}
 
       <Modal visible={modalVisible} transparent={true} animationType="slide">
         <View style={styles.modalContainer}>
