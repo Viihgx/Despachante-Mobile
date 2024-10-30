@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function EscolherServicoScreen() {
   const router = useRouter();
-  const { token } = useLocalSearchParams();
+  const { service, token } = useLocalSearchParams();
 
   const handleServiceSelection = (service: string) => {
     router.push({
