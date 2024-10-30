@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import axios from 'axios';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function UploadPdfScreen() {
   const [file, setFile] = useState<DocumentPicker.DocumentPickerResult | null>(null);
   const router = useRouter();
-  const { token } = useLocalSearchParams(); 
-  const API_URL = 'http://10.0.2.2:5000/api';
+  const { service, token, nomeCompleto, placaCarro, nomeVeiculo } = useLocalSearchParams();
 
   const pickDocument = async () => {
     try {
@@ -28,58 +26,16 @@ export default function UploadPdfScreen() {
     }
   };
 
-  const uploadDocument = async () => {
+  const goToPayment = () => {
     if (!file || file.canceled) {
       Alert.alert('Erro', 'Por favor, selecione um arquivo primeiro.');
       return;
     }
 
-    if (!token) {
-      Alert.alert('Erro', 'Usuário não autenticado.');
-      router.push('/login');
-      return;
-    }
-
-    const { uri, name } = file.assets[0];
-
-    const formData = new FormData();
-    formData.append('pdfFiles', {
-      uri,  // Use diretamente o URI fornecido pelo DocumentPicker
-      name: name || 'arquivo.pdf',
-      type: 'application/pdf',
-    } as any);
-
-    console.log('FormData preparado:', formData);
-
-    try {
-      const response = await axios.post(`${API_URL}/upload-pdfs`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-        timeout: 60000,
-      });
-
-      Alert.alert('Sucesso', 'PDF enviado com sucesso.');
-      console.log('Resposta do servidor:', response.data);
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        if (error.response) {
-          console.log('Resposta do servidor:', error.response.data);
-        } else if (error.request) {
-          console.log('Sem resposta do servidor:', error.request);
-        } else {
-          console.log('Erro ao configurar a requisição:', error.message);
-        }
-      } else if (error instanceof Error) {
-        console.log('Erro:', error.message);
-      } else {
-        console.log('Erro inesperado:', error);
-      }
-
-      Alert.alert('Erro', 'Ocorreu um erro ao enviar o arquivo.');
-    }
+    router.push({
+      pathname: '/paymentForm',
+      params: { token, nomeCompleto, placaCarro, nomeVeiculo, pdfUri: file.assets[0].uri, pdfName: file.assets[0].name, service },
+    });
   };
 
   return (
@@ -94,8 +50,8 @@ export default function UploadPdfScreen() {
         <Text style={styles.fileText}>Arquivo selecionado: {file.assets[0].name}</Text>
       )}
 
-      <TouchableOpacity style={styles.button} onPress={uploadDocument}>
-        <Text style={styles.buttonText}>Enviar PDF</Text>
+      <TouchableOpacity style={styles.button} onPress={goToPayment}>
+        <Text style={styles.buttonText}>Avançar</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
