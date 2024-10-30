@@ -128,6 +128,15 @@ export default function HomeScreen() {
     });
   };
 
+ // Função para formatar a data no formato dd/MM/yyyy
+  function formatDate(dateString: string) {
+    const date = new Date(dateString);
+    const dia = String(date.getDate()).padStart(2, '0');
+    const mes = String(date.getMonth() + 1).padStart(2, '0');
+    const ano = date.getFullYear();
+    return `${dia}/${mes}/${ano}`;
+  }
+  
   return (
     <View style={styles.container}>
       <View style={styles.menuContainer}>
@@ -165,8 +174,8 @@ export default function HomeScreen() {
                   <Text style={styles.servicoText}>Tipo de Serviço: {servico.tipo_servico}</Text>
                   <Text style={styles.servicoText}>Forma de Pagamento: {servico.forma_pagamento}</Text>
                   <Text style={styles.servicoText}>Status: {servico.status_servico}</Text>
-                  <Text style={styles.servicoText}>
-                    Data da Solicitação: {new Date(servico.data_solicitacao).toLocaleDateString()}
+                   <Text style={styles.servicoText}>
+                      Data da Solicitação: {formatDate(servico.data_solicitacao)}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -186,7 +195,7 @@ export default function HomeScreen() {
               <Text style={styles.modalText}>Forma de Pagamento: {selectedServico.forma_pagamento}</Text>
               <Text style={styles.modalText}>Status: {selectedServico.status_servico}</Text>
               <Text style={styles.modalText}>
-                Data da Solicitação: {new Date(selectedServico.data_solicitacao).toLocaleDateString()}
+                Data da Solicitação: {formatDate(selectedServico.data_solicitacao)}
               </Text>
               <Text style={styles.modalText}>Nome Completo: {selectedServico.nome_completo}</Text>
               <Text style={styles.modalText}>Placa do Veículo: {selectedServico.placa_do_veiculo}</Text>
