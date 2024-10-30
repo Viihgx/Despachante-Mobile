@@ -9,6 +9,19 @@ export default function InformationService() {
   const [placaCarro, setPlacaCarro] = useState('');
   const [nomeVeiculo, setNomeVeiculo] = useState('');
 
+  const formatPlaca = (value: string) => {
+    value = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase(); // Remove caracteres não alfanuméricos e transforma em maiúsculas
+    if (value.length > 7) value = value.slice(0, 7); // Limita a 7 caracteres
+
+    // Aplica a formatação conforme o padrão Mercosul (AAA0A00)
+    if (value.length > 3 && value.length <= 4) {
+      value = value.replace(/([A-Z]{3})(\d{1})/, '$1$2');
+    } else if (value.length > 4) {
+      value = value.replace(/([A-Z]{3})(\d{1})([A-Z]{1})(\d{1,2})/, '$1$2$3$4');
+    }
+    setPlacaCarro(value);
+  };
+
   const handleSubmit = () => {
     if (!nomeCompleto || !placaCarro || !nomeVeiculo) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos');
@@ -37,7 +50,8 @@ export default function InformationService() {
         style={styles.input}
         placeholder="Placa do Carro"
         value={placaCarro}
-        onChangeText={setPlacaCarro}
+        onChangeText={formatPlaca}
+        maxLength={7} // Limita a 7 caracteres (padrão AAA0A00)
       />
 
       <TextInput
