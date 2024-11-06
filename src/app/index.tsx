@@ -162,15 +162,15 @@ export default function HomeScreen() {
     });
   };
 
-   // Função para formatar a data no formato dd/MM/yyyy
-   function formatDate(dateString: string) {
+ // Função para formatar a data no formato dd/MM/yyyy
+  function formatDate(dateString: string) {
     const date = new Date(dateString);
     const dia = String(date.getDate()).padStart(2, '0');
     const mes = String(date.getMonth() + 1).padStart(2, '0');
     const ano = date.getFullYear();
     return `${dia}/${mes}/${ano}`;
   }
-
+ 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -224,6 +224,28 @@ export default function HomeScreen() {
           <Text style={styles.noServicosText}>Nenhum serviço encontrado.</Text>
         )}
       </ScrollView>
+      <View style={styles.servicosSection}>
+        <Text style={styles.servicosTitle}>Meus Serviços:</Text>
+
+        <ScrollView contentContainerStyle={styles.servicosContainer}>
+          {servicos.length > 0 ? (
+            servicos.map((servico, index) => (
+              <TouchableOpacity key={index} onPress={() => openModal(servico)}>
+                <View style={styles.servicoCard}>
+                  <Text style={styles.servicoText}>Tipo de Serviço: {servico.tipo_servico}</Text>
+                  <Text style={styles.servicoText}>Forma de Pagamento: {servico.forma_pagamento}</Text>
+                  <Text style={styles.servicoText}>Status: {servico.status_servico}</Text>
+                   <Text style={styles.servicoText}>
+                      Data da Solicitação: {formatDate(servico.data_solicitacao)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noServicosText}>Você ainda não solicitou nenhum serviço.</Text>
+          )}
+        </ScrollView>
+      </View>
 
       <Modal visible={modalVisible} transparent={true} animationType="fade">
         <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
