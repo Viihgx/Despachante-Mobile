@@ -1,82 +1,133 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import ProgressBar from '../components/ProgressBar'; // Caminho do componente ProgressBar
 
 export default function EscolherServicoScreen() {
   const router = useRouter();
   const { service, token } = useLocalSearchParams();
+  const [scale] = useState(new Animated.Value(1));
 
   const handleServiceSelection = (service: string) => {
-    router.push({
-      pathname: '/informationService',
-      params: { service, token },
+    Animated.sequence([
+      Animated.timing(scale, { toValue: 0.95, duration: 100, easing: Easing.ease, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1, duration: 100, easing: Easing.ease, useNativeDriver: true }),
+    ]).start(() => {
+      router.push({
+        pathname: '/informationService',
+        params: { service, token },
+      });
     });
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Selecione um Serviço</Text>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.progressBarContainer}>
+          <ProgressBar etapaAtual={1} totalEtapas={3} />
+        </View>
+      </View>
 
-      <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection('Primeiro Emplacamento')}>
-        <Text style={styles.cardText}>Primeiro Emplacamento</Text>
-      </TouchableOpacity>
 
-      <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection('Placa Mercosul')}>
-        <Text style={styles.cardText}>Placa Mercosul</Text>
-      </TouchableOpacity>
+      <Text style={styles.title}>Escolha um serviço:</Text>
 
-      <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection('Segunda Via')}>
-        <Text style={styles.cardText}>Segunda Via</Text>
-      </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.cardsContainer} showsVerticalScrollIndicator={false}>
+        {['Primeiro Emplacamento', 'Placa Mercosul', 'Segunda Via', 'Transferência Veicular'].map((item, index) => (
+          <Animated.View key={index} style={[styles.cardContainer, { transform: [{ scale }] }]}>
+            <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection(item)}>
+              <Ionicons name="car-outline" size={24} color="#f5b91e" style={styles.icon} />
+              <Text style={styles.cardText} numberOfLines={1} ellipsizeMode="tail">
+                {item}
+              </Text>
+              <Ionicons name="chevron-forward" size={24} color="#f5b91e" style={styles.arrowIcon} />
+            </TouchableOpacity>
+          </Animated.View>
+        ))}
+      </ScrollView>
 
-      <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection('Transferência Veicular')}>
-        <Text style={styles.cardText}>Transferência Veicular</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Text style={styles.backButtonText}>Voltar</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    flex: 1,
+    backgroundColor: '#f2f4f8',
     alignItems: 'center',
-    marginTop: 50,
+    paddingHorizontal: 20,
+    paddingTop: 40,
   },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 20,
+  },
+  progressBarContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 10, // Ajuste para alinhar verticalmente
+  },
+  
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  cardsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexGrow: 1,
+    paddingVertical: 10,
+  },
+  cardContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   card: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    width: '90%',
+    backgroundColor: 'transparent',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 0.7,
+    borderColor: '#ccc',
+    minHeight: 60,
+  },
+  icon: {
+    marginRight: 15,
   },
   cardText: {
-    color: '#fff',
+    color: '#000000',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  arrowIcon: {
+    marginLeft: 10,
   },
   backButton: {
-    backgroundColor: '#ff4d4d',
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 20,
+    backgroundColor: '#f5b91e',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginBottom: 20,
     alignItems: 'center',
-    width: '90%',
   },
   backButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#111c55',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
