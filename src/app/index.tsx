@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, Modal, Button, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, Modal, Animated, TextInput } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { Link, useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';  
+import { MaterialIcons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
 
 interface Servico {
@@ -19,6 +19,8 @@ interface Servico {
 export default function HomeScreen() {
   const [userName, setUserName] = useState<string>('');
   const [servicos, setServicos] = useState<Servico[]>([]);
+  const [filteredServicos, setFilteredServicos] = useState<Servico[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [menuVisible, setMenuVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedServico, setSelectedServico] = useState<Servico | null>(null);
@@ -32,7 +34,7 @@ export default function HomeScreen() {
         const token = await SecureStore.getItemAsync('userToken');
         if (!token) {
           Alert.alert('Erro', 'Usuário não autenticado');
-          router.push('/login'); 
+          router.push('/login');
           return;
         }
 
@@ -65,7 +67,14 @@ export default function HomeScreen() {
           };
         });
 
-        setServicos(servicosComPdfs);
+        // Ordena os serviços do mais recente para o mais antigo
+        const servicosOrdenados = servicosComPdfs.sort((a: Servico, b: Servico) => {
+          return new Date(b.data_solicitacao.split("/").reverse().join("-")).getTime() -
+                 new Date(a.data_solicitacao.split("/").reverse().join("-")).getTime();
+        });
+
+        setServicos(servicosOrdenados);
+        setFilteredServicos(servicosOrdenados);
       } catch (error) {
         console.error('Erro ao buscar dados do usuário:', error);
         Alert.alert('Erro', 'Não foi possível carregar os dados do usuário');
@@ -75,9 +84,23 @@ export default function HomeScreen() {
     fetchUserData();
   }, []);
 
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    const lowercasedQuery = query.toLowerCase();
+
+    const filtered = servicos.filter(servico =>
+      servico.tipo_servico.toLowerCase().includes(lowercasedQuery) ||
+      servico.status_servico.toLowerCase().includes(lowercasedQuery) ||
+      new Date(servico.data_solicitacao).toLocaleDateString().includes(lowercasedQuery)
+    );
+
+    setFilteredServicos(filtered);
+  };
+
   const handleLogout = async () => {
-    await SecureStore.deleteItemAsync('userToken'); 
-    router.push('/login'); 
+    await SecureStore.deleteItemAsync('userToken');
+    router.push('/login');
   };
 
   const toggleMenu = () => {
@@ -87,14 +110,14 @@ export default function HomeScreen() {
   const solicitarServico = async () => {
     try {
       const token = await SecureStore.getItemAsync('userToken');
-      
+
       if (!token) {
         Alert.alert('Erro', 'Usuário não autenticado.');
         router.push('/login');
       } else {
         router.push({
           pathname: '/escolherServico',
-          params: { token }, 
+          params: { token },
         });
       }
     } catch (error) {
@@ -104,8 +127,19 @@ export default function HomeScreen() {
   };
 
   const handleDownload = (url: string) => {
-    Linking.openURL(url);
+    const cleanedUrl = url.replace(/['"\[\]]/g, ''); // Remove aspas e colchetes
+  
+    Linking.canOpenURL(cleanedUrl)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(cleanedUrl);
+        } else {
+          Alert.alert("Erro", "Nenhum aplicativo disponível para abrir este link.");
+        }
+      })
+      .catch((err) => console.error("Erro ao tentar abrir o link:", err));
   };
+  
 
   const openModal = (servico: Servico) => {
     setSelectedServico(servico);
@@ -136,33 +170,60 @@ export default function HomeScreen() {
     const ano = date.getFullYear();
     return `${dia}/${mes}/${ano}`;
   }
-  
+ 
   return (
     <View style={styles.container}>
-      <View style={styles.menuContainer}>
+      <View style={styles.header}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Olá, {userName}</Text>
+          <Text style={styles.subtitle}>Bem-vindo de volta</Text>
+        </View>
+        <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+          <MaterialIcons name="menu" size={28} color="#fff" />
+        </TouchableOpacity>
         <Menu
           visible={menuVisible}
-          anchor={
-            <TouchableOpacity onPress={toggleMenu}>
-              <MaterialIcons name="menu" size={28} color="black" />
-            </TouchableOpacity>
-          }
+          anchor={<></>}
           onRequestClose={toggleMenu}
         >
           <MenuItem onPress={handleLogout}>Sair</MenuItem>
         </Menu>
       </View>
 
-      <Text style={styles.title}>Olá, {userName}</Text>
-      <Text style={styles.subtitle}>Seja bem-vindo de volta</Text>
-
-      <View style={styles.solicitarServicoContainer}>
-        <Text style={styles.servicosTitle}>Solicite um serviço:</Text>
-        <TouchableOpacity style={styles.solicitarServicoButton} onPress={solicitarServico}>
-          <Text style={styles.solicitarServicoText}>Solicitar Serviço</Text>
+      <View style={styles.actionButtonContainer}>
+        <TouchableOpacity style={styles.actionButton} onPress={solicitarServico}>
+          <Text style={styles.actionButtonText}>Solicitar Serviço</Text>
         </TouchableOpacity>
       </View>
 
+      <Text style={styles.sectionTitle}>Meus Serviços</Text>
+
+      {/* Barra de Pesquisa */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Pesquisar por tipo de serviço, status ou data"
+        value={searchQuery}
+        onChangeText={handleSearch}
+      />
+
+      <ScrollView contentContainerStyle={styles.servicosContainer} style={styles.scrollView}>
+        {filteredServicos.length > 0 ? (
+          filteredServicos.map((servico, index) => (
+            <TouchableOpacity key={index} onPress={() => openModal(servico)}>
+              <View style={styles.servicoCard}>
+                <Text style={styles.servicoTitle}>{servico.tipo_servico}</Text>
+                <Text style={styles.servicoText}>Pagamento: {servico.forma_pagamento}</Text>
+                <Text style={styles.servicoText}>Status: {servico.status_servico}</Text>
+                <Text style={styles.servicoText}>
+                      Data da Solicitação: {formatDate(servico.data_solicitacao)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <Text style={styles.noServicosText}>Nenhum serviço encontrado.</Text>
+        )}
+      </ScrollView>
       <View style={styles.servicosSection}>
         <Text style={styles.servicosTitle}>Meus Serviços:</Text>
 
@@ -190,16 +251,20 @@ export default function HomeScreen() {
         <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
           {selectedServico && (
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Detalhes do Serviço</Text>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Detalhes do Serviço</Text>
+                <TouchableOpacity onPress={closeModal} style={styles.closeIcon}>
+                  <MaterialIcons name="close" size={24} color="#111c55" />
+                </TouchableOpacity>
+              </View>
               <Text style={styles.modalText}>Tipo de Serviço: {selectedServico.tipo_servico}</Text>
-              <Text style={styles.modalText}>Forma de Pagamento: {selectedServico.forma_pagamento}</Text>
+              <Text style={styles.modalText}>Pagamento: {selectedServico.forma_pagamento}</Text>
               <Text style={styles.modalText}>Status: {selectedServico.status_servico}</Text>
               <Text style={styles.modalText}>
                 Data da Solicitação: {formatDate(selectedServico.data_solicitacao)}
               </Text>
-              <Text style={styles.modalText}>Nome Completo: {selectedServico.nome_completo}</Text>
-              <Text style={styles.modalText}>Placa do Veículo: {selectedServico.placa_do_veiculo}</Text>
 
+              <Text style={styles.modalText}>Baixar PDF:</Text>
               {selectedServico.file_pdfs.length > 0 && (
                 <View>
                   {selectedServico.file_pdfs.map((fileUrl, fileIndex) => (
@@ -213,17 +278,14 @@ export default function HomeScreen() {
                   ))}
                 </View>
               )}
-
-              <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-                <Text style={styles.closeButtonText}>Fechar</Text>
-              </TouchableOpacity>
             </View>
           )}
         </Animated.View>
       </Modal>
 
+
       <Link href="/user" style={styles.profileLink}>
-        Ir para pagina de usuario
+        Ir para página de usuário
       </Link>
     </View>
   );
@@ -232,92 +294,103 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    marginTop: 35,
     backgroundColor: '#f5f5f5',
   },
-  menuContainer: {
-    alignItems: 'flex-end',
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'left',
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#666',
-    textAlign: 'left',
-    marginBottom: 20,
-  },
-  solicitarServicoContainer: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  solicitarServicoButton: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 10,
+  header: {
+    backgroundColor: '#111c55',
+    paddingVertical: 45,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  solicitarServicoText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  servicosSection: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  titleContainer: {
     flex: 1,
   },
-  servicosTitle: {
-    fontSize: 20,
-    color: '#333',
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#f5b91e',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#ffffff',
+    marginTop: 5,
+  },
+  menuButton: {
+    paddingLeft: 10,
+  },
+  actionButtonContainer: {
+    alignItems: 'center',
+    marginTop: -20,
+  },
+  actionButton: {
+    backgroundColor: '#f5b91e',
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    borderWidth: 2.1,
+    borderColor: '#fff',
+  },
+  actionButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111c55',
+    marginTop: 20,
+    marginLeft: 20,
     marginBottom: 10,
+  },
+  searchInput: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginHorizontal: 20,
+    marginBottom: 15,
+    backgroundColor: '#fff',
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
   servicosContainer: {
-    flexGrow: 1,
+    paddingBottom: 20,
   },
   servicoCard: {
-    width: '100%',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
     padding: 15,
-    marginBottom: 10,
-    elevation: 1,
-    borderWidth: 1,
-    borderColor: '#ccc',
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  servicoTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111c55',
+    marginBottom: 5,
   },
   servicoText: {
-    fontSize: 16,
-    color: '#333',
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
   },
   noServicosText: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-  },
-  profileLink: {
-    fontSize: 16,
-    color: '#007bff',
-    textAlign: 'center',
-    padding: 15,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-    marginTop: 10,
+    marginTop: 20,
   },
   modalContainer: {
     flex: 1,
@@ -329,45 +402,48 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 25,
     margin: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    alignItems: 'flex-start', // Alinha o conteúdo à esquerda
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 20,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    color: '#111c55',
+  },
+  closeIcon: {
+    padding: 5,
   },
   modalText: {
-    fontSize: 18,
+    fontSize: 16,
     marginBottom: 10,
+    color: '#333',
+    textAlign: 'left', // Alinha o texto à esquerda
   },
   downloadButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#f5b91e',
     padding: 10,
     borderRadius: 5,
     marginTop: 10,
+    alignItems: 'center',
   },
   downloadText: {
     color: '#fff',
     fontSize: 16,
-    textAlign: 'center',
   },
-  closeButton: {
-    backgroundColor: '#ff4d4d',
-    padding: 10,
+  profileLink: {
+    fontSize: 16,
+    color: '#111c55',
+    textAlign: 'center',
+    padding: 15,
+    backgroundColor: '#f0f0f0',
     borderRadius: 10,
     marginTop: 20,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: '#fff',
-    fontSize: 16,
   },
 });
+
