@@ -224,28 +224,6 @@ export default function HomeScreen() {
           <Text style={styles.noServicosText}>Nenhum serviço encontrado.</Text>
         )}
       </ScrollView>
-      <View style={styles.servicosSection}>
-        <Text style={styles.servicosTitle}>Meus Serviços:</Text>
-
-        <ScrollView contentContainerStyle={styles.servicosContainer}>
-          {servicos.length > 0 ? (
-            servicos.map((servico, index) => (
-              <TouchableOpacity key={index} onPress={() => openModal(servico)}>
-                <View style={styles.servicoCard}>
-                  <Text style={styles.servicoText}>Tipo de Serviço: {servico.tipo_servico}</Text>
-                  <Text style={styles.servicoText}>Forma de Pagamento: {servico.forma_pagamento}</Text>
-                  <Text style={styles.servicoText}>Status: {servico.status_servico}</Text>
-                   <Text style={styles.servicoText}>
-                      Data da Solicitação: {formatDate(servico.data_solicitacao)}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={styles.noServicosText}>Você ainda não solicitou nenhum serviço.</Text>
-          )}
-        </ScrollView>
-      </View>
 
       <Modal visible={modalVisible} transparent={true} animationType="fade">
         <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
@@ -446,4 +424,3 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 });
-
