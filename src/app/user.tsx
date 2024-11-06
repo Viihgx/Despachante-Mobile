@@ -4,12 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store'; // Para armazenar o token de forma segura
+import * as SecureStore from 'expo-secure-store';
 
 interface Vehicle {
   id?: number;
   placa: string;
   nome?: string;
+  placa_veiculo?: string;
+  nome_veiculo?: string;
 }
 
 const UserProfile = () => {
@@ -20,7 +22,7 @@ const UserProfile = () => {
   const [vehicleData, setVehicleData] = useState<Vehicle>({ placa: '', nome: '' });
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const router = useRouter();
-  const API_URL = 'http://192.168.0.18:5001/api'; // Ajuste a URL do seu backend
+  const API_URL = 'http://10.0.2.2:5000/api';
   
   useEffect(() => {
     fetchUserData();
@@ -32,10 +34,9 @@ const UserProfile = () => {
       const token = await SecureStore.getItemAsync('userToken');
       if (!token) {
         Alert.alert('Erro', 'Usuário não autenticado');
-        router.push('/login'); // Redireciona para a tela de login
+        router.push('/login');
         return;
       }
-
       const response = await axios.get(`${API_URL}/api/user-data-usuario`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -53,11 +54,7 @@ const UserProfile = () => {
       const response = await axios.get(`${API_URL}/api/veiculos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (response.data.vehicles && response.data.vehicles.length > 0) {
-        setVehicles(response.data.vehicles); // Recebendo o array de veículos
-      } else {
-        setVehicles([]); // Se não houver veículos
-      }
+      setVehicles(response.data.vehicles || []);
     } catch (error) {
       console.error('Erro ao buscar veículos:', error);
       setVehicles([]);
@@ -86,13 +83,12 @@ const UserProfile = () => {
       Alert.alert('Erro', 'A placa do veículo é obrigatória.');
       return;
     }
-
     try {
       const token = await SecureStore.getItemAsync('userToken');
       await axios.post(`${API_URL}/api/add-veiculo`, vehicleData, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      fetchVehicles();  // Atualiza a lista de veículos
+      fetchVehicles();
       setModalVisible(false);
     } catch (error) {
       console.error('Erro ao adicionar veículo:', error);
@@ -106,7 +102,7 @@ const UserProfile = () => {
       await axios.delete(`${API_URL}/api/delete-veiculo/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      fetchVehicles(); // Atualiza a lista de veículos
+      fetchVehicles();
       Alert.alert('Sucesso', 'Veículo excluído com sucesso');
     } catch (error) {
       console.error('Erro ao excluir veículo:', error);
@@ -116,59 +112,71 @@ const UserProfile = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Perfil do Usuário</Text>
-      <View style={styles.menuContainer}>
-        <TouchableOpacity onPress={handleEditClick}>
-          <Ionicons name={isEditing ? 'save' : 'pencil'} size={24} color="black" />
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back-outline" size={25} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Perfil do Usuário</Text>
+        <TouchableOpacity onPress={handleEditClick} style={styles.editButton}>
+          <Ionicons name={isEditing ? 'save-outline' : 'pencil-outline'} size={20} color="#fff" />
         </TouchableOpacity>
       </View>
-      <Text style={styles.subtitle}>Meus dados</Text>
-      <View style={styles.solicitarServicoContainer}>
-        <TextInput
-          style={styles.input}
-          editable={isEditing}
-          value={editedData.name}
-          onChangeText={(text) => setEditedData({ ...editedData, name: text })}
-          placeholder="Nome"
-        />
-        <TextInput
-          style={styles.input}
-          editable={isEditing}
-          value={editedData.email}
-          onChangeText={(text) => setEditedData({ ...editedData, email: text })}
-          placeholder="Email"
-        />
-        <TextInput
-          style={styles.input}
-          editable={isEditing}
-          value={editedData.phone}
-          onChangeText={(text) => setEditedData({ ...editedData, phone: text })}
-          placeholder="Telefone"
-        />
+      
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Meus Dados</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            editable={isEditing}
+            value={editedData.name}
+            onChangeText={(text) => setEditedData({ ...editedData, name: text })}
+            placeholder="Nome"
+            placeholderTextColor="#999"
+          />
+          <TextInput
+            style={styles.input}
+            editable={isEditing}
+            value={editedData.email}
+            onChangeText={(text) => setEditedData({ ...editedData, email: text })}
+            placeholder="Email"
+            placeholderTextColor="#999"
+          />
+          <TextInput
+            style={styles.input}
+            editable={isEditing}
+            value={editedData.phone}
+            onChangeText={(text) => setEditedData({ ...editedData, phone: text })}
+            placeholder="Telefone"
+            placeholderTextColor="#999"
+          />
+        </View>
       </View>
 
-      <Text style={styles.subtitle}>Meus veículos</Text>
-      <View style={styles.menuContainer}>
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
-          <Ionicons name="add-circle-outline" size={24} color="black" />
-        </TouchableOpacity>
+      <View style={styles.section}>
+        <View style={styles.vehicleHeader}>
+          <Text style={styles.sectionTitle}>Meus Veículos</Text>
+          <TouchableOpacity onPress={() => setModalVisible(true)}>
+            <Ionicons name="add-circle" size={28} color="#007bff" />
+          </TouchableOpacity>
+        </View>
+        {vehicles.length > 0 ? (
+          vehicles.map((vehicle, index) => (
+            <View key={index} style={styles.vehicleContainer}>
+              <View style={styles.vehicleInfo}>
+                <Text style={styles.placa}>{vehicle.placa_veiculo?.toUpperCase() || 'Placa não disponível'}</Text>
+                {vehicle.nome_veiculo && <Text style={styles.vehicleName}>{vehicle.nome_veiculo}</Text>}
+              </View>
+              <TouchableOpacity onPress={() => handleDeleteVehicle(vehicle.id!)}>
+                <Ionicons name="trash-outline" size={24} color="red" />
+              </TouchableOpacity>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.noVehicleText}>Não há veículos cadastrados.</Text>
+        )}
       </View>
 
-      {vehicles.length > 0 ? (
-        vehicles.map((vehicle, index) => (
-          <View key={index} style={styles.vehicleContainer}>
-            <Text style={styles.placa}>{vehicle.placa ? vehicle.placa.toUpperCase() : 'Placa não disponível'}</Text>
-            {vehicle.nome ? <Text style={styles.vehicleName}>{vehicle.nome}</Text> : null}
-            <TouchableOpacity onPress={() => handleDeleteVehicle(vehicle.id!)} >
-              <Ionicons name="trash" size={24} color="red" />
-            </TouchableOpacity>
-          </View>
-        ))
-      ) : (
-        <Text style={styles.noVehicleText}>Não há veículos cadastrados.</Text>
-      )}
-
-      <Modal visible={modalVisible} transparent={true} animationType="slide">
+      <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Adicionar Veículo</Text>
@@ -176,91 +184,110 @@ const UserProfile = () => {
               style={styles.input}
               value={vehicleData.placa}
               onChangeText={(text) => setVehicleData({ ...vehicleData, placa: text.toUpperCase() })}
-              placeholder="Placa do Veículo (Obrigatório)"
-              keyboardType="default" // Permite letras e números
+              placeholder="Placa do Veículo"
+              placeholderTextColor="#999"
             />
             <TextInput
               style={styles.input}
               value={vehicleData.nome}
               onChangeText={(text) => setVehicleData({ ...vehicleData, nome: text })}
               placeholder="Nome do Veículo (Opcional)"
+              placeholderTextColor="#999"
             />
             <Pressable style={styles.button} onPress={handleAddVehicle}>
               <Text style={styles.buttonText}>Salvar</Text>
             </Pressable>
-            <Pressable style={[styles.button, { backgroundColor: 'red' }]} onPress={() => setModalVisible(false)}>
+            <Pressable style={[styles.button, styles.cancelButton]} onPress={() => setModalVisible(false)}>
               <Text style={styles.buttonText}>Cancelar</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
-
-      <TouchableOpacity style={styles.backButton} onPress={() => router.push('/')}>
-        <Text style={styles.backButtonText}>Voltar para Home</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
-
-export default UserProfile;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f0f4f8',
+    marginTop: 20,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-  },
-  menuContainer: {
+  headerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
   },
-  subtitle: {
-    fontSize: 20,
+  backButton: {
+    marginRight: 10,
+  },
+  title: {
+    flex: 1,
+    fontSize: 26,
+    fontWeight: '600',
+    color: '#333',
+  },
+  editButton: {
+    backgroundColor: '#007bff',
+    padding: 10,
+    borderRadius: 50,
+  },
+  section: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
+    color: '#333',
     marginBottom: 10,
   },
-  solicitarServicoContainer: {
+  inputContainer: {
     backgroundColor: '#fff',
     padding: 15,
     borderRadius: 10,
     elevation: 2,
-    marginBottom: 20,
   },
   input: {
-    backgroundColor: '#f9f9f9',
-    padding: 10,
+    backgroundColor: '#f8f9fa',
+    padding: 12,
     borderRadius: 8,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#e0e0e0',
+  },
+  vehicleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   vehicleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#fff',
     padding: 15,
     borderRadius: 10,
-    marginBottom: 20,
+    marginTop: 10,
     elevation: 2,
+  },
+  vehicleInfo: {
+    flex: 1,
   },
   placa: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    color: '#333',
   },
   vehicleName: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: '#777',
   },
   noVehicleText: {
     fontSize: 16,
-    color: '#666',
+    color: '#888',
     textAlign: 'center',
+    marginTop: 10,
   },
   modalContainer: {
     flex: 1,
@@ -277,29 +304,24 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333',
     marginBottom: 10,
   },
   button: {
     backgroundColor: '#007bff',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
-    marginTop: 10,
     alignItems: 'center',
+    marginTop: 10,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
   },
-  backButton: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  cancelButton: {
+    backgroundColor: '#dc3545',
   },
 });
+
+export default UserProfile;
