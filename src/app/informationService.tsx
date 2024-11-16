@@ -38,7 +38,7 @@ export default function InformationService() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.progressBarContainer}>
-          <ProgressBar etapaAtual={2} totalEtapas={3} />
+          <ProgressBar etapaAtual={2} totalEtapas={4} />
         </View>
       </View>
   
