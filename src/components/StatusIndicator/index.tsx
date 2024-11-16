@@ -23,8 +23,8 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.statusText}>{status}</Text>
       <View style={[styles.statusCircle, { backgroundColor: getStatusColor() }]} />
+      <Text style={styles.statusText}>{status}</Text>
     </View>
   );
 };
@@ -43,6 +43,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
+    marginRight: 8,
   },
 });
 

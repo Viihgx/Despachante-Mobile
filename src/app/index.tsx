@@ -10,6 +10,7 @@ import StatusIndicator from '../components/StatusIndicator';
 import FilterButton from '../components/FilterButton';
 
 interface Servico {
+  id: number; 
   tipo_servico: string;
   forma_pagamento: string;
   status_servico: string;
@@ -216,26 +217,36 @@ export default function HomeScreen() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={styles.servicosContainer} style={styles.scrollView}>
-        {filteredServicos.length > 0 ? (
-          filteredServicos.map((servico, index) => (
-            <TouchableOpacity key={index} onPress={() => openModal(servico)}>
-              <View style={styles.servicoCard}>
-                <Text style={styles.servicoTitle}>{servico.tipo_servico}</Text>
-                <Text style={styles.servicoText}>Pagamento: {servico.forma_pagamento}</Text>
-                <View style={styles.statusContainer}>
-                    <StatusIndicator status={servico.status_servico} />
-                </View>
-                <Text style={styles.servicoText}>
-                      Data da Solicitação: {formatDate(servico.data_solicitacao)}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={styles.noServicosText}>Nenhum serviço encontrado.</Text>
-        )}
-      </ScrollView>
+          <ScrollView contentContainerStyle={styles.servicosContainer} style={styles.scrollView}>
+            {filteredServicos.length > 0 ? (
+              filteredServicos.map((servico, index) => (
+                <TouchableOpacity key={index} onPress={() => openModal(servico)}>
+                  <View style={styles.servicoCard}>
+                    <Text style={styles.servicoText}>
+                      <Text style={styles.servicoLabel}>ID do serviço: </Text>
+                      {servico.id}
+                    </Text>
+                    <Text style={styles.servicoText}>
+                      <Text style={styles.servicoLabel}>Tipo de Serviço: </Text>
+                      {servico.tipo_servico}
+                    </Text>
+                    <View style={styles.statusContainer}>
+                      <Text style={styles.servicoLabel}>Status do Serviço: </Text>
+                      <StatusIndicator status={servico.status_servico} />
+                    </View>
+                    <Text style={styles.servicoText}>
+                      <Text style={styles.servicoLabel}>Data: </Text>
+                      {formatDate(servico.data_solicitacao)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+        <Text style={styles.noServicosText}>Nenhum serviço encontrado.</Text>
+      )}
+    </ScrollView>
+
+
 
       <Modal visible={modalVisible} transparent={true} animationType="fade">
         <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
@@ -250,8 +261,9 @@ export default function HomeScreen() {
               <Text style={styles.modalText}>Tipo de Serviço: {selectedServico.tipo_servico}</Text>
               <Text style={styles.modalText}>Pagamento: {selectedServico.forma_pagamento}</Text>
               <View style={styles.statusContainer}>
-                  <StatusIndicator status={selectedServico.status_servico} />
-              </View>
+                      <Text style={styles.modalText}>Status do Serviço: </Text>
+                      <StatusIndicator status={selectedServico.status_servico} />
+                    </View>
               <Text style={styles.modalText}>
                 Data da Solicitação: {formatDate(selectedServico.data_solicitacao)}
               </Text>
@@ -386,6 +398,10 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 5,
   },
+  servicoLabel: {
+    fontWeight: 'bold',
+    color: '#000',
+  },
   noServicosText: {
     fontSize: 16,
     color: '#666',
@@ -397,6 +413,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 5,
     marginBottom: 5,
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8, 
   },
   modalContainer: {
     flex: 1,
