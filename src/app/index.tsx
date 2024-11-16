@@ -165,23 +165,6 @@ export default function HomeScreen() {
     });
   };
 
-  const handleFilterChange = (filterType: string, filterValue: string) => {
-    let updatedServicos = [...servicos];
-  
-    if (filterType === 'dateOrder') {
-      updatedServicos = updatedServicos.sort((a, b) => {
-        const dateA = new Date(a.data_solicitacao.split("/").reverse().join("-")).getTime();
-        const dateB = new Date(b.data_solicitacao.split("/").reverse().join("-")).getTime();
-        return filterValue === 'recent' ? dateB - dateA : dateA - dateB;
-      });
-    } else if (filterType === 'status' && filterValue) {
-      updatedServicos = updatedServicos.filter((servico) => servico.status_servico === filterValue);
-    }
-  
-    setFilteredServicos(updatedServicos);
-  };
-  
-
  // Função para formatar a data no formato dd/MM/yyyy
   function formatDate(dateString: string) {
     const date = new Date(dateString);
@@ -227,7 +210,10 @@ export default function HomeScreen() {
           value={searchQuery}
           onChangeText={handleSearch}
         />
-        <FilterButton onFilter={handleFilterChange} />
+        <FilterButton
+          data={servicos} // Passa os dados brutos
+          onFilteredData={setFilteredServicos} // Atualiza a lista de serviços filtrados
+        />
       </View>
 
       <ScrollView contentContainerStyle={styles.servicosContainer} style={styles.scrollView}>
@@ -360,6 +346,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 20,
     marginBottom: 15,
+    gap: 5,
   },
   searchInput: {
     flex: 1,

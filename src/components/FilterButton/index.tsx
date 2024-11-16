@@ -1,68 +1,108 @@
 import React, { useState } from 'react';
 import { View, Modal, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import StatusIndicator from '../StatusIndicator';
 
 interface FilterButtonProps {
-  onFilter: (filterType: string, filterValue: string) => void;
+  data: any[]; // Dados brutos (ex: serviços) que serão filtrados
+  onFilteredData: (filteredData: any[]) => void; // Callback para enviar os dados filtrados
 }
 
-const FilterButton: React.FC<FilterButtonProps> = ({ onFilter }) => {
+const FilterButton: React.FC<FilterButtonProps> = ({ data, onFilteredData }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedDateOrder, setSelectedDateOrder] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   const toggleModal = () => {
     setModalVisible(!modalVisible);
   };
 
-  const handleDateOrderChange = (itemValue: string) => {
-    setSelectedDateOrder(itemValue);
-    onFilter('dateOrder', itemValue);
-  };
+  const handleApplyFilter = () => {
+    let updatedData = [...data];
 
-  const handleStatusChange = (status: string) => {
-    setSelectedStatus(status);
-    onFilter('status', status);
+    if (selectedFilter === 'recent') {
+      updatedData.sort((a, b) => {
+        const dateA = new Date(a.data_solicitacao.split('/').reverse().join('-')).getTime();
+        const dateB = new Date(b.data_solicitacao.split('/').reverse().join('-')).getTime();
+        return dateB - dateA;
+      });
+    } else if (selectedFilter === 'oldest') {
+      updatedData.sort((a, b) => {
+        const dateA = new Date(a.data_solicitacao.split('/').reverse().join('-')).getTime();
+        const dateB = new Date(b.data_solicitacao.split('/').reverse().join('-')).getTime();
+        return dateA - dateB;
+      });
+    }
+
+    onFilteredData(updatedData); // Envia os dados filtrados para a tela principal
+    setModalVisible(false); // Fecha o modal
   };
 
   return (
     <View>
       <TouchableOpacity style={styles.filterButton} onPress={toggleModal}>
-        <MaterialIcons name="filter-list" size={24} color="#555" />
+        <MaterialIcons name="filter-list" size={16} color="#666" />
+        <Text style={styles.filterButtonText}>Filtrar</Text>
       </TouchableOpacity>
 
-      <Modal visible={modalVisible} transparent={true} animationType="slide">
+      <Modal visible={modalVisible} transparent={true} animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Filtrar</Text>
+            <View style={styles.headerContainer}>
+              <TouchableOpacity onPress={toggleModal}>
+                <MaterialIcons name="arrow-back" size={24} color="#000000" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Ordenar por data</Text>
+            </View>
 
-            {/* Filtro por data */}
-            <Text style={styles.label}>Ordenar por data:</Text>
-            <TouchableOpacity onPress={() => handleDateOrderChange('recent')} style={styles.optionButton}>
-              <Text style={selectedDateOrder === 'recent' ? styles.selectedOptionText : styles.optionText}>
-                Mais recentes
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleDateOrderChange('oldest')} style={styles.optionButton}>
-              <Text style={selectedDateOrder === 'oldest' ? styles.selectedOptionText : styles.optionText}>
-                Mais antigas
-              </Text>
-            </TouchableOpacity>
-
-            {/* Filtro por status com bolinhas de cor */}
-            <Text style={styles.label}>Filtrar por status:</Text>
-            {['pendente', 'concluido', 'em andamento', 'cancelado'].map((status) => (
-              <TouchableOpacity key={status} onPress={() => handleStatusChange(status)} style={styles.optionButton}>
-                <StatusIndicator status={status} /> 
-                <Text style={selectedStatus === status ? styles.selectedOptionText : styles.optionText}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
+            <View style={styles.optionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.filterOption,
+                  selectedFilter === 'recent' && styles.selectedOption,
+                ]}
+                onPress={() => setSelectedFilter('recent')}
+              >
+                <MaterialIcons
+                  name="arrow-downward"
+                  size={16}
+                  color={selectedFilter === 'recent' ? '#f5b91e' : '#666'}
+                />
+                <Text
+                  style={[
+                    styles.optionText,
+                    selectedFilter === 'recent' && styles.selectedText,
+                  ]}
+                >
+                  Mais recentes
                 </Text>
               </TouchableOpacity>
-            ))}
+              <TouchableOpacity
+                style={[
+                  styles.filterOption,
+                  selectedFilter === 'oldest' && styles.selectedOption,
+                ]}
+                onPress={() => setSelectedFilter('oldest')}
+              >
+                <MaterialIcons
+                  name="arrow-upward"
+                  size={16}
+                  color={selectedFilter === 'oldest' ? '#f5b91e' : '#666'}
+                />
+                <Text
+                  style={[
+                    styles.optionText,
+                    selectedFilter === 'oldest' && styles.selectedText,
+                  ]}
+                >
+                  Mais antigas
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity style={styles.closeButton} onPress={toggleModal}>
-              <Text style={styles.closeButtonText}>Fechar</Text>
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={handleApplyFilter}
+            >
+              <Text style={styles.applyButtonText}>Aplicar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -73,10 +113,19 @@ const FilterButton: React.FC<FilterButtonProps> = ({ onFilter }) => {
 
 const styles = StyleSheet.create({
   filterButton: {
-    padding: 10,
-    marginRight: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 6,
   },
   modalContainer: {
     flex: 1,
@@ -84,50 +133,66 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
+    gap: 10,
+    marginHorizontal: 20,
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 20,
-    margin: 20,
+    
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  optionButton: {
+  headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    marginBottom: 12,
   },
-  optionText: {
-    fontSize: 16,
-    color: '#555',
-    marginLeft: 8,
-  },
-  selectedOptionText: {
-    fontSize: 16,
-    color: '#111c55',
+  modalTitle: {
+    fontSize: 19,
     fontWeight: 'bold',
     marginLeft: 8,
   },
-  closeButton: {
-    backgroundColor: '#111c55',
+  optionsContainer: {
+    justifyContent: 'center',
+    alignSelf: 'center',
+    width: '90%', // Reduz a largura das opções
+    flexDirection: 'row',
+    gap: 10,
+  },
+  filterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    marginBottom: 10,
+    // backgroundColor: '#f8f9fa',
+    borderColor: '#ccc',
+    borderWidth: 1,
+  },
+  optionText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  selectedOption: {
+    backgroundColor: '#fff',
+    borderColor: '#f5b91e',
+    borderWidth: 1,
+  },
+  selectedText: {
+    color: '#f5b91e',
+    fontWeight: 'bold',
+  },
+  applyButton: {
+    backgroundColor: '#f5b91e',
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 20,
     alignItems: 'center',
     marginTop: 20,
   },
-  closeButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 
