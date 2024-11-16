@@ -10,12 +10,12 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {
     switch (status.toLowerCase()) {
       case 'pendente':
         return '#f5b91e'; // Amarelo para Pendente
-      case 'concluido':
-        return '#28a745'; // Verde para Concluído
+      case 'concluído':
+        return '#2CA741'; // Verde para Concluído
       case 'em andamento':
-        return '#17a2b8'; // Azul claro para Em Andamento
+        return '#0079FD'; // Azul claro para Em Andamento
       case 'cancelado':
-        return 'red'; // Azul para Cancelado
+        return '#D73948'; // vermelho para Cancelado
       default:
         return '#ccc'; // Cor padrão para status desconhecido
     }
