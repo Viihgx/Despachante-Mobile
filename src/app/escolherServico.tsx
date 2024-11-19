@@ -2,53 +2,112 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import ProgressBar from '../components/ProgressBar'; // Caminho do componente ProgressBar
+import ProgressBar from '../components/ProgressBar';
+
+const serviceDetails: Record<string, string[]> = {
+  'Primeiro Emplacamento': [
+    'Nota fiscal da compra',
+    'Cópia da CNH ou identidade',
+    'CPF do nome do remetente',
+  ],
+  'Placa Mercosul': [
+    'CRLV do veículo',
+    'Cópia da CNH ou identidade',
+    'CPF do proprietário do veículo',
+    'Recibo de compra e venda (caso a placa seja de modelo antigo)',
+    'B.O de perda da placa (caso tenha sido extraviada)',
+  ],
+  'Segunda Via': [
+    'Requisição de segunda via assinada e reconhecida',
+    'Cópia da CNH ou identidade',
+    'CPF do proprietário do veículo',
+    'B.O de perda do CRV',
+  ],
+  'Transferência Veicular': [
+    'ATPV-e ou Recibo de compra e venda assinado e reconhecido',
+    'Cópia da CNH ou identidade',
+    'CPF do comprador do veículo',
+  ],
+};
 
 export default function EscolherServicoScreen() {
   const router = useRouter();
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const { service, token } = useLocalSearchParams();
   const [scale] = useState(new Animated.Value(1));
+
+  const toggleExpand = (service: string) => {
+    if (expandedCard === service) {
+      setExpandedCard(null);
+    } else {
+      setExpandedCard(service);
+    }
+  };
 
   const handleServiceSelection = (service: string) => {
     Animated.sequence([
       Animated.timing(scale, { toValue: 0.95, duration: 100, easing: Easing.ease, useNativeDriver: true }),
       Animated.timing(scale, { toValue: 1, duration: 100, easing: Easing.ease, useNativeDriver: true }),
     ]).start(() => {
-      router.push({
-        pathname: '/informationService',
-        params: { service, token },
-      });
+
+    router.push({
+      pathname: '/informationService',
+      params: { service, token },
     });
-  };
+  });
+};
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.progressBarContainer}>
-          <ProgressBar etapaAtual={1} totalEtapas={4} />
-        </View>
+        <ProgressBar etapaAtual={1} totalEtapas={4} />
       </View>
-
 
       <Text style={styles.title}>Escolha um serviço:</Text>
 
       <ScrollView contentContainerStyle={styles.cardsContainer} showsVerticalScrollIndicator={false}>
-        {['Primeiro Emplacamento', 'Placa Mercosul', 'Segunda Via', 'Transferência Veicular'].map((item, index) => (
-          <Animated.View key={index} style={[styles.cardContainer, { transform: [{ scale }] }]}>
-            <TouchableOpacity style={styles.card} onPress={() => handleServiceSelection(item)}>
+        {Object.keys(serviceDetails).map((item, index) => (
+          <View key={index} style={styles.card}>
+            <TouchableOpacity
+              style={styles.cardHeader}
+              onPress={() => toggleExpand(item)}
+            >
               <Ionicons name="car-outline" size={24} color="#f5b91e" style={styles.icon} />
-              <Text style={styles.cardText} numberOfLines={1} ellipsizeMode="tail">
-                {item}
-              </Text>
-              <Ionicons name="chevron-forward" size={24} color="#f5b91e" style={styles.arrowIcon} />
+              <Text style={styles.cardTitle}>{item}</Text>
+              <Ionicons
+                name={expandedCard === item ? 'chevron-up' : 'chevron-down'}
+                size={24}
+                color="#f5b91e"
+              />
             </TouchableOpacity>
-          </Animated.View>
+
+            {expandedCard === item && (
+              <Animated.View key={index} style={[styles.cardDetails, { transform: [{ scale }] }]}>
+                {/* Adicionando o título "Documentos Necessários:" */}
+                <Text style={styles.documentsTitle}>Documentos Necessários:</Text>
+
+                {serviceDetails[item].map((detail, idx) => (
+                  <Text key={idx} style={styles.detailText}>
+                    • {detail}
+                  </Text>
+                ))}
+                <TouchableOpacity
+                  style={styles.selectButton}
+                  onPress={() => handleServiceSelection(item)}
+                >
+                  <Text style={styles.selectButtonText}>Selecionar</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+          </View>
         ))}
       </ScrollView>
 
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Text style={styles.backButtonText}>Voltar</Text>
-      </TouchableOpacity>
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -57,9 +116,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f4f8',
-    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 50,
   },
   header: {
     alignItems: 'center',
@@ -67,61 +125,89 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 20,
   },
-  progressBarContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 10, // Ajuste para alinhar verticalmente
-  },
-  
   title: {
     fontSize: 24,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 30,
+    marginBottom: 10,
     textAlign: 'center',
   },
   cardsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
     flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 10,
   },
-  cardContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
   card: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 16,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
-    paddingVertical: 15,
     paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 0.7,
-    borderColor: '#ccc',
-    minHeight: 60,
+    paddingVertical: 15,
   },
   icon: {
     marginRight: 15,
   },
-  cardText: {
-    color: '#000000',
+  cardTitle: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#000',
     flex: 1,
-    textAlign: 'center',
-  },
-  arrowIcon: {
     marginLeft: 10,
+  },
+  cardDetails: {
+    backgroundColor: '#f9f9f9',
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  documentsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 10,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 8,
+  },
+  selectButton: {
+    backgroundColor: '#f5b91e',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  selectButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderColor: '#e0e0e0',
+    width: '100%',
+    paddingHorizontal: 20,
   },
   backButton: {
     backgroundColor: '#f5b91e',
     paddingVertical: 12,
     paddingHorizontal: 40,
     borderRadius: 25,
+    marginTop: 20,
     marginBottom: 20,
     alignItems: 'center',
   },
