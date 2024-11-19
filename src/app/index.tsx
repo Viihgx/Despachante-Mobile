@@ -173,9 +173,6 @@ export default function HomeScreen() {
     }
   };
   
-  
-  
-  
   const openModal = async (servico: Servico) => {
     console.log('Abrindo modal para serviço ID:', servico.id);
     setSelectedServico(servico);
@@ -249,31 +246,7 @@ export default function HomeScreen() {
           onFilteredData={setFilteredServicos} // Atualiza a lista de serviços filtrados
         />
       </View>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Pesquisar por tipo de serviço, status ou data"
-        value={searchQuery}
-        onChangeText={handleSearch}
-      />
 
-      <ScrollView contentContainerStyle={styles.servicosContainer} style={styles.scrollView}>
-        {filteredServicos.length > 0 ? (
-          filteredServicos.map((servico, index) => (
-            <TouchableOpacity key={index} onPress={() => openModal(servico)}>
-              <View style={styles.servicoCard}>
-                <Text style={styles.servicoTitle}>{servico.tipo_servico}</Text>
-                <Text style={styles.servicoText}>Pagamento: {servico.forma_pagamento}</Text>
-                <Text style={styles.servicoText}>Status: {servico.status_servico}</Text>
-                <Text style={styles.servicoText}>
-                      Data da Solicitação: {formatDate(servico.data_solicitacao)}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={styles.noServicosText}>Nenhum serviço encontrado.</Text>
-        )}
-      </ScrollView>
           <ScrollView contentContainerStyle={styles.servicosContainer} style={styles.scrollView}>
             {filteredServicos.length > 0 ? (
               filteredServicos.map((servico, index) => (
