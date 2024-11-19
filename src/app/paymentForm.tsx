@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import ProgressBar from '../components/ProgressBar';
 
 export default function PaymentForm() {
   const router = useRouter();
@@ -17,17 +18,9 @@ export default function PaymentForm() {
   const placa = Array.isArray(placaCarro) ? placaCarro[0] : placaCarro || '';
   const veiculo = Array.isArray(nomeVeiculo) ? nomeVeiculo[0] : nomeVeiculo || '';
 
-  // Função para formatar o CPF
   const formatCpf = (value: string) => {
-    // Remove caracteres não numéricos
     value = value.replace(/\D/g, '');
-
-    // Limita o valor a 11 dígitos
-    if (value.length > 11) {
-      value = value.slice(0, 11);
-    }
-
-    // Adiciona pontos e traço conforme o usuário digita
+    if (value.length > 11) value = value.slice(0, 11);
     if (value.length > 9) {
       value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     } else if (value.length > 6) {
@@ -35,19 +28,32 @@ export default function PaymentForm() {
     } else if (value.length > 3) {
       value = value.replace(/(\d{3})(\d{1,3})/, '$1.$2');
     }
-
     setCpf(value);
   };
 
   const handlePaymentSubmit = async () => {
-    if (!cpf || !metodoPagamento || !tipoServico) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos');
-      return;
-    }
+    // Verificação dos parâmetros obrigatórios
+  if (!cpf || !metodoPagamento || !tipoServico) {
+    Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios');
+    return;
+  }
+
+  if (!token) {
+    Alert.alert('Erro', 'Token de autenticação não encontrado');
+    return;
+  }
+
+  if (!pdfUri || !pdfName) {
+    Alert.alert('Erro', 'Arquivo PDF não encontrado. Por favor, faça o upload de um PDF válido.');
+    return;
+  }
+
+  if (!nomeCompleto || !placaCarro || !nomeVeiculo) {
+    Alert.alert('Erro', 'Informações do veículo estão incompletas. Por favor, preencha todos os dados.');
+    return;
+  }
 
     const formData = new FormData();
-
-    // Certifique-se de que `pdfUri` e `pdfName` são strings antes de usá-los
     if (typeof pdfUri === 'string' && typeof pdfName === 'string') {
       formData.append('pdfFiles', {
         uri: pdfUri,
@@ -65,14 +71,6 @@ export default function PaymentForm() {
     formData.append('placaVeiculo', placa);
     formData.append('nomeVeiculo', veiculo);
 
-    console.log("PDF URI:", pdfUri);
-    console.log("PDF Name:", pdfName);
-    console.log("Tipo de Serviço:", tipoServico);
-    console.log("Nome Completo:", nome);
-    console.log("Método de Pagamento:", metodoPagamento);
-    console.log("Placa do Veículo:", placa);
-    console.log("Nome do Veículo:", veiculo);
-
     try {
       const response = await axios.post(`${API_URL}/upload-pdfs`, formData, {
         headers: {
@@ -84,8 +82,6 @@ export default function PaymentForm() {
       });
 
       Alert.alert('Sucesso', 'Serviço solicitado com sucesso.');
-      console.log('Resposta do servidor:', response.data);
-
       router.push('/');
     } catch (error) {
       console.error('Erro ao fazer upload de PDFs:', error);
@@ -95,39 +91,50 @@ export default function PaymentForm() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Informações de Pagamento</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="CPF"
-        value={cpf}
-        onChangeText={formatCpf}
-        keyboardType="numeric"
-        maxLength={14} // Limita o input a 14 caracteres (formato 000.000.000-00)
-      />
-
-      <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Selecione um método de pagamento:</Text>
-        <Picker
-          selectedValue={metodoPagamento}
-          style={styles.picker}
-          onValueChange={(itemValue) => setMetodoPagamento(itemValue)}
-        >
-          <Picker.Item label="Escolha um método" value="" />
-          <Picker.Item label="Boleto" value="boleto" />
-          <Picker.Item label="Cartão de Débito" value="debito" />
-          <Picker.Item label="Cartão de Crédito" value="credito" />
-          <Picker.Item label="Pix" value="pix" />
-        </Picker>
+      <View style={styles.header}>
+        <View style={styles.progressBarContainer}>
+          <ProgressBar etapaAtual={3} totalEtapas={4} />
+        </View>
       </View>
 
-      <TouchableOpacity style={styles.submitButton} onPress={handlePaymentSubmit}>
-        <Text style={styles.submitButtonText}>Finalizar</Text>
-      </TouchableOpacity>
+      <View style={styles.content}>
+        <Text style={styles.title}>Informações de Pagamento</Text>
+        <View style={styles.inputContainer}>
+        <Text style={styles.label}>CPF</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="CPF"
+          value={cpf}
+          onChangeText={formatCpf}
+          keyboardType="numeric"
+          maxLength={14}
+        />
+        </View>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>Voltar</Text>
-      </TouchableOpacity>
+        <View style={styles.pickerContainer}>
+          <Text style={styles.pickerLabel}>Selecione um método de pagamento:</Text>
+          <Picker
+            selectedValue={metodoPagamento}
+            style={styles.picker}
+            onValueChange={(itemValue) => setMetodoPagamento(itemValue)}
+          >
+            <Picker.Item label="Escolha um método" value="" />
+            <Picker.Item label="Boleto" value="boleto" />
+            <Picker.Item label="Cartão de Débito" value="debito" />
+            <Picker.Item label="Cartão de Crédito" value="credito" />
+            <Picker.Item label="Pix" value="pix" />
+          </Picker>
+        </View>
+      </View>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>Voltar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.submitButton} onPress={handlePaymentSubmit}>
+          <Text style={styles.submitButtonText}>Finalizar</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -135,64 +142,112 @@ export default function PaymentForm() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+  },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 20,
+  },
+  progressBarContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 10,
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111c55',
     textAlign: 'center',
+    marginBottom: 20,
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: 40,
+    height: 50,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 5,
   },
   input: {
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 10,
-    borderColor: '#ddd',
+    backgroundColor: '#ffffff',
+    padding: 14,
+    borderRadius: 12,
+    borderColor: '#cccccc',
     borderWidth: 1,
-    marginBottom: 15,
+    fontSize: 16,
+    color: '#333333',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 1,
   },
   pickerContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
     borderColor: '#ddd',
     borderWidth: 1,
-    marginBottom: 15,
     paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 20,
   },
   pickerLabel: {
     fontSize: 16,
+    fontWeight: '600',
     color: '#555',
-    marginTop: 10,
     marginBottom: 5,
   },
   picker: {
     height: 50,
     width: '100%',
   },
-  submitButton: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderColor: '#e0e0e0',
+    width: '100%',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
   },
   backButton: {
-    backgroundColor: '#ff4d4d',
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 10,
+    backgroundColor: '#f5b91e',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
     alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
   },
   backButtonText: {
-    color: '#fff',
+    color: '#111c55',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  submitButton: {
+    backgroundColor: '#111c55',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 10,
+  },
+  submitButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

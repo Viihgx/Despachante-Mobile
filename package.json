@@ -1,5 +1,5 @@
 {
-  "name": "despachante-mobile",
+  "name": "despachante-mobile-app",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -24,6 +24,7 @@
     "axios": "^1.7.4",
     "bcrypt": "^5.1.1",
     "despachante-mobile": "file:",
+    "despachante-mobile-app": "file:",
     "dotenv": "^16.4.5",
     "expo": "~51.0.39",
     "expo-constants": "~16.0.2",

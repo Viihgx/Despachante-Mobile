@@ -5,8 +5,12 @@ import axios from 'axios';
 import { Link, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
+import Navbar from '../components/NavBar';
+import StatusIndicator from '../components/StatusIndicator';
+import FilterButton from '../components/FilterButton';
 
 interface Servico {
+  id: number; 
   tipo_servico: string;
   forma_pagamento: string;
   status_servico: string;
@@ -122,7 +126,7 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Erro ao verificar autenticação:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao verificar a autenticação.');
+      // Alert.alert('Erro', 'Ocorreu um erro ao verificar a autenticação.');
     }
   };
 
@@ -172,6 +176,7 @@ export default function HomeScreen() {
   }
  
   return (
+    <View style={{ flex: 1 }}>
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
@@ -199,6 +204,18 @@ export default function HomeScreen() {
       <Text style={styles.sectionTitle}>Meus Serviços</Text>
 
       {/* Barra de Pesquisa */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Pesquisar por tipo de serviço, status ou data"
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
+        <FilterButton
+          data={servicos} // Passa os dados brutos
+          onFilteredData={setFilteredServicos} // Atualiza a lista de serviços filtrados
+        />
+      </View>
       <TextInput
         style={styles.searchInput}
         placeholder="Pesquisar por tipo de serviço, status ou data"
@@ -224,6 +241,36 @@ export default function HomeScreen() {
           <Text style={styles.noServicosText}>Nenhum serviço encontrado.</Text>
         )}
       </ScrollView>
+          <ScrollView contentContainerStyle={styles.servicosContainer} style={styles.scrollView}>
+            {filteredServicos.length > 0 ? (
+              filteredServicos.map((servico, index) => (
+                <TouchableOpacity key={index} onPress={() => openModal(servico)}>
+                  <View style={styles.servicoCard}>
+                    <Text style={styles.servicoText}>
+                      <Text style={styles.servicoLabel}>ID do serviço: </Text>
+                      {servico.id}
+                    </Text>
+                    <Text style={styles.servicoText}>
+                      <Text style={styles.servicoLabel}>Tipo de Serviço: </Text>
+                      {servico.tipo_servico}
+                    </Text>
+                    <View style={styles.statusContainer}>
+                      <Text style={styles.servicoLabel}>Status do Serviço: </Text>
+                      <StatusIndicator status={servico.status_servico} />
+                    </View>
+                    <Text style={styles.servicoText}>
+                      <Text style={styles.servicoLabel}>Data: </Text>
+                      {formatDate(servico.data_solicitacao)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+        <Text style={styles.noServicosText}>Nenhum serviço encontrado.</Text>
+      )}
+    </ScrollView>
+
+
 
       <Modal visible={modalVisible} transparent={true} animationType="fade">
         <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
@@ -237,7 +284,10 @@ export default function HomeScreen() {
               </View>
               <Text style={styles.modalText}>Tipo de Serviço: {selectedServico.tipo_servico}</Text>
               <Text style={styles.modalText}>Pagamento: {selectedServico.forma_pagamento}</Text>
-              <Text style={styles.modalText}>Status: {selectedServico.status_servico}</Text>
+              <View style={styles.statusContainer}>
+                      <Text style={styles.modalText}>Status do Serviço: </Text>
+                      <StatusIndicator status={selectedServico.status_servico} />
+                    </View>
               <Text style={styles.modalText}>
                 Data da Solicitação: {formatDate(selectedServico.data_solicitacao)}
               </Text>
@@ -266,6 +316,8 @@ export default function HomeScreen() {
         Ir para página de usuário
       </Link>
     </View>
+    <Navbar />
+    </View>
   );
 }
 
@@ -290,7 +342,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#f5b91e',
+    color: '#fff',
   },
   subtitle: {
     fontSize: 16,
@@ -308,31 +360,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5b91e',
     paddingVertical: 10,
     paddingHorizontal: 30,
-    borderRadius: 20,
+    borderRadius: 17,
     borderWidth: 2.1,
     borderColor: '#fff',
   },
   actionButtonText: {
-    color: '#000000',
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111c55',
+    color: '#555',
     marginTop: 20,
     marginLeft: 20,
     marginBottom: 10,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 15,
+    gap: 5,
+  },
   searchInput: {
+    flex: 1,
     height: 40,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 10,
-    marginHorizontal: 20,
-    marginBottom: 15,
     backgroundColor: '#fff',
   },
   scrollView: {
@@ -355,8 +413,8 @@ const styles = StyleSheet.create({
   },
   servicoTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111c55',
+    fontWeight: '500',
+    color: '#000000',
     marginBottom: 5,
   },
   servicoText: {
@@ -364,11 +422,26 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 5,
   },
+  servicoLabel: {
+    fontWeight: 'bold',
+    color: '#000',
+  },
   noServicosText: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
     marginTop: 20,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8, 
   },
   modalContainer: {
     flex: 1,

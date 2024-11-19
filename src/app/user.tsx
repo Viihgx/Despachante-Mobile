@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import Navbar from '../components/NavBar';
 
 interface Vehicle {
   id?: number;
@@ -111,6 +112,7 @@ const UserProfile = () => {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView style={styles.container}>
       <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -204,6 +206,8 @@ const UserProfile = () => {
         </View>
       </Modal>
     </ScrollView>
+    <Navbar/>
+    </View>
   );
 };
 

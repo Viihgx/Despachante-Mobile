@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import ProgressBar from '../components/ProgressBar';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function UploadPdfScreen() {
   const [file, setFile] = useState<DocumentPicker.DocumentPickerResult | null>(null);
@@ -40,23 +42,32 @@ export default function UploadPdfScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Envie seu arquivo PDF</Text>
+       <View style={styles.header}>
+        <View style={styles.progressBarContainer}>
+          <ProgressBar etapaAtual={3} totalEtapas={4} />
+        </View>
+      </View>
 
-      <TouchableOpacity style={styles.button} onPress={pickDocument}>
-        <Text style={styles.buttonText}>Selecionar PDF</Text>
-      </TouchableOpacity>
+      <View style={styles.content}>
+        <Text style={styles.title}>Envie seu arquivo PDF</Text>
 
-      {file && !file.canceled && (
-        <Text style={styles.fileText}>Arquivo selecionado: {file.assets[0].name}</Text>
-      )}
+        <TouchableOpacity style={styles.uploadBox} onPress={pickDocument}>
+          <Ionicons name="cloud-upload-outline" size={40} color="#888" />
+          <Text style={styles.uploadText}>Toque para selecionar um PDF</Text>
+          {file && !file.canceled && (
+            <Text style={styles.fileText}>Arquivo selecionado: {file.assets[0].name}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
-      <TouchableOpacity style={styles.button} onPress={goToPayment}>
-        <Text style={styles.buttonText}>Avançar</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>Voltar</Text>
-      </TouchableOpacity>
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>Voltar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.nextButton} onPress={goToPayment}>
+          <Text style={styles.nextButtonText}>Avançar</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -64,41 +75,92 @@ export default function UploadPdfScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+  },
+  header: {
+    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    width: '100%',
+    marginBottom: 20,
+  },
+  progressBarContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 10,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#000000',
     textAlign: 'center',
     marginBottom: 20,
   },
-  button: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
+  content: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
+  uploadBox: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 12,
+    padding: 20,
+    width: '100%',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderStyle: 'dashed',
+    marginBottom: 20,
+  },
+  uploadText: {
+    color: '#888',
+    fontSize: 16,
+    marginTop: 10,
+    textAlign: 'center',
   },
   fileText: {
+    fontSize: 14,
+    color: '#555',
     textAlign: 'center',
-    marginBottom: 10,
-    fontSize: 16,
+    marginTop: 10,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderColor: '#e0e0e0',
+    width: '100%',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
   },
   backButton: {
-    backgroundColor: '#ff4d4d',
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 20,
+    backgroundColor: '#f5b91e',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
     alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
   },
   backButtonText: {
-    color: '#fff',
+    color: '#111c55',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  nextButton: {
+    backgroundColor: '#111c55',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 10,
+  },
+  nextButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
