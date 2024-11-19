@@ -4,6 +4,7 @@ const supabase = require('../supabaseClient');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
+const bcrypt = require('bcrypt');
 
 // Configuração do multer para upload de arquivos
 const storage = multer.memoryStorage();  // Armazena os arquivos na memória em vez de no disco
@@ -34,7 +35,9 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Usuário não encontrado' });
   }
 
-  if (data.Senha_usuario !== senha) {
+  // Comparar a senha fornecida com o hash armazenado
+  const senhaValida = await bcrypt.compare(senha, data.Senha_usuario);
+  if (!senhaValida) {
     return res.status(401).json({ error: 'Senha incorreta' });
   }
 
@@ -67,9 +70,13 @@ router.post('/signup', async (req, res) => {
     return res.status(400).json({ error: 'Email já cadastrado' });
   }
 
+   // Hash da senha
+   const saltRounds = 10; // Número de rounds de salt
+   const hashedPassword = await bcrypt.hash(senha, saltRounds);
+
   const { error: insertError } = await supabase
     .from('Usuarios')
-    .insert([{ Nome: nome, Email_usuario: email, Senha_usuario: senha }]);
+    .insert([{ Nome: nome, Email_usuario: email, Senha_usuario: hashedPassword }]);
 
   if (insertError) {
     console.error('Erro ao criar usuário:', insertError);
