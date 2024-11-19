@@ -4,6 +4,7 @@ const supabase = require('../supabaseClient');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
+const bcrypt = require('bcrypt');
 
 // Configuração do multer para upload de arquivos
 const storage = multer.memoryStorage();  // Armazena os arquivos na memória em vez de no disco
@@ -34,7 +35,9 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Usuário não encontrado' });
   }
 
-  if (data.Senha_usuario !== senha) {
+  // Comparar a senha fornecida com o hash armazenado
+  const senhaValida = await bcrypt.compare(senha, data.Senha_usuario);
+  if (!senhaValida) {
     return res.status(401).json({ error: 'Senha incorreta' });
   }
 
@@ -67,9 +70,13 @@ router.post('/signup', async (req, res) => {
     return res.status(400).json({ error: 'Email já cadastrado' });
   }
 
+   // Hash da senha
+   const saltRounds = 10; // Número de rounds de salt
+   const hashedPassword = await bcrypt.hash(senha, saltRounds);
+
   const { error: insertError } = await supabase
     .from('Usuarios')
-    .insert([{ Nome: nome, Email_usuario: email, Senha_usuario: senha }]);
+    .insert([{ Nome: nome, Email_usuario: email, Senha_usuario: hashedPassword }]);
 
   if (insertError) {
     console.error('Erro ao criar usuário:', insertError);
@@ -135,22 +142,23 @@ router.get('/meus-servicos', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    // Buscar os serviços solicitados pelo usuário
-    const { data: servicosData, error: servicosError } = await supabase
-      .from('servicoSolicitado')
-      .select('id, tipo_servico, forma_pagamento, status_servico, data_solicitacao, file_pdfs, nome_completo, placa_do_veiculo') // Adicionando os campos nome_completo e placa_do_veiculo
-      .eq('id_usuario', usuarioData.ID);
+      // Buscar os serviços solicitados pelo usuário
+      const { data: servicosData, error: servicosError } = await supabase
+        .from('servicoSolicitado')
+        .select('id, tipo_servico, forma_pagamento, status_servico, data_solicitacao, file_pdfs, nome_completo, placa_do_veiculo') // Adicionando os campos nome_completo e placa_do_veiculo
+        .eq('id_usuario', usuarioData.ID);
 
-    if (servicosError) {
-      return res.status(500).json({ error: 'Erro ao buscar serviços' });
+      if (servicosError) {
+        return res.status(500).json({ error: 'Erro ao buscar serviços' });
+      }
+
+      res.status(200).json({ servicos: servicosData });
+    } catch (error) {
+      console.error('Erro ao buscar serviços:', error);
+      res.status(500).json({ error: 'Erro ao buscar serviços' });
     }
-
-    res.status(200).json({ servicos: servicosData });
-  } catch (error) {
-    console.error('Erro ao buscar serviços:', error);
-    res.status(500).json({ error: 'Erro ao buscar serviços' });
-  }
 });
+
 // Rota para buscar os dados do usuário
 router.get('/api/user-data-usuario', authenticateToken, async (req, res) => {
   const { email } = req.user;
@@ -376,6 +384,33 @@ router.post('/upload-pdfs', authenticateToken, upload.array('pdfFiles', 10), asy
   }
 });
 
-module.exports = router;
+// Rota para buscar mensagens por ID do serviço
+router.get('/messages/:servico_id', authenticateToken, async (req, res) => {
+  const { servico_id } = req.params;
+  console.log('ID recebido no backend:', servico_id);
 
+  try {
+    const { data, error } = await supabase
+  .from('messages')
+  .select('text, timestamp')
+  .eq('servico_id', servico_id);
+
+    console.log('Dados retornados do Supabase:', data); // Log para depuração
+
+    if (error) {
+      console.error('Erro ao buscar mensagens no Supabase:', error);
+      return res.status(500).json({ success: false, message: 'Erro ao buscar mensagens' });
+    }
+
+    res.status(200).json({ success: true, messages: data });
+  } catch (error) {
+    console.error('Erro interno ao buscar mensagens:', error);
+    res.status(500).json({ success: false, message: 'Erro interno' });
+  }
+});
+
+
+
+
+module.exports = router;
 

@@ -10,7 +10,7 @@ import StatusIndicator from '../components/StatusIndicator';
 import FilterButton from '../components/FilterButton';
 
 interface Servico {
-  id: number; 
+  id: string; 
   tipo_servico: string;
   forma_pagamento: string;
   status_servico: string;
@@ -18,6 +18,11 @@ interface Servico {
   file_pdfs: string[];
   nome_completo?: string;
   placa_do_veiculo?: string;
+}
+
+interface Message {
+  text: string;
+  timestamp: string;
 }
 
 export default function HomeScreen() {
@@ -29,6 +34,7 @@ export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedServico, setSelectedServico] = useState<Servico | null>(null);
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [messages, setMessages] = useState<Message[]>([]);
   const API_URL = 'http://10.0.2.2:5000';
   const router = useRouter();
 
@@ -144,9 +150,36 @@ export default function HomeScreen() {
       .catch((err) => console.error("Erro ao tentar abrir o link:", err));
   };
   
-
-  const openModal = (servico: Servico) => {
+  const fetchMessages = async (servicoId: string) => {
+    try {
+      const token = await SecureStore.getItemAsync('userToken');
+      // console.log('Buscando mensagens para o serviço ID:', servicoId);
+      // console.log('URL da requisição:', `${API_URL}/messages/${servicoId}`);
+  
+      const response = await axios.get(`${API_URL}/api/messages/${servicoId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (response.data.success) {
+        console.log('Mensagens retornadas:', response.data.messages);
+        setMessages(response.data.messages);
+      } else {
+        console.error('Erro ao buscar mensagens:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar mensagens:', error);
+    }
+  };
+  
+  
+  
+  
+  const openModal = async (servico: Servico) => {
+    console.log('Abrindo modal para serviço ID:', servico.id);
     setSelectedServico(servico);
+    await fetchMessages(servico.id); // Busque as mensagens ao abrir o modal
     setModalVisible(true);
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -154,7 +187,7 @@ export default function HomeScreen() {
       useNativeDriver: true,
     }).start();
   };
-
+  
   const closeModal = () => {
     Animated.timing(fadeAnim, {
       toValue: 0,
@@ -222,23 +255,24 @@ export default function HomeScreen() {
               filteredServicos.map((servico, index) => (
                 <TouchableOpacity key={index} onPress={() => openModal(servico)}>
                   <View style={styles.servicoCard}>
-                    <Text style={styles.servicoText}>
-                      <Text style={styles.servicoLabel}>ID do serviço: </Text>
-                      {servico.id}
-                    </Text>
-                    <Text style={styles.servicoText}>
-                      <Text style={styles.servicoLabel}>Tipo de Serviço: </Text>
-                      {servico.tipo_servico}
-                    </Text>
-                    <View style={styles.statusContainer}>
-                      <Text style={styles.servicoLabel}>Status do Serviço: </Text>
-                      <StatusIndicator status={servico.status_servico} />
+                      <Text style={styles.servicoText}>
+                        <Text style={styles.servicoLabel}>ID do serviço: </Text>
+                        {servico.id}
+                      </Text>
+                      <Text style={styles.servicoText}>
+                        <Text style={styles.servicoLabel}>Tipo de Serviço: </Text>
+                        {servico.tipo_servico}
+                      </Text>
+                      <View style={styles.statusContainer}>
+                        <Text style={styles.servicoLabel}>Status do Serviço: </Text>
+                        <StatusIndicator status={servico.status_servico} />
+                      </View>
+                      <Text style={styles.servicoText}>
+                        <Text style={styles.servicoLabel}>Data: </Text>
+                        {formatDate(servico.data_solicitacao)}
+                      </Text>
                     </View>
-                    <Text style={styles.servicoText}>
-                      <Text style={styles.servicoLabel}>Data: </Text>
-                      {formatDate(servico.data_solicitacao)}
-                    </Text>
-                  </View>
+
                 </TouchableOpacity>
               ))
             ) : (
@@ -258,15 +292,17 @@ export default function HomeScreen() {
                   <MaterialIcons name="close" size={24} color="#111c55" />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.modalText}>Tipo de Serviço: {selectedServico.tipo_servico}</Text>
-              <Text style={styles.modalText}>Pagamento: {selectedServico.forma_pagamento}</Text>
-              <View style={styles.statusContainer}>
-                      <Text style={styles.modalText}>Status do Serviço: </Text>
-                      <StatusIndicator status={selectedServico.status_servico} />
-                    </View>
-              <Text style={styles.modalText}>
-                Data da Solicitação: {formatDate(selectedServico.data_solicitacao)}
-              </Text>
+              <Text style={styles.modalText}>ID do Serviço: {selectedServico.id}</Text>
+                <Text style={styles.modalText}>Tipo de Serviço: {selectedServico.tipo_servico}</Text>
+                <Text style={styles.modalText}>Pagamento: {selectedServico.forma_pagamento}</Text>
+                <View style={styles.statusContainer}>
+                  <Text style={styles.modalText}>Status do Serviço: </Text>
+                  <StatusIndicator status={selectedServico.status_servico} />
+                </View>
+                <Text style={styles.modalText}>
+                  Data da Solicitação: {formatDate(selectedServico.data_solicitacao)}
+                </Text>
+
 
               <Text style={styles.modalText}>Baixar PDF:</Text>
               {selectedServico.file_pdfs.length > 0 && (
@@ -282,6 +318,25 @@ export default function HomeScreen() {
                   ))}
                 </View>
               )}
+                <View style={styles.messagesSection}>
+                  <Text style={styles.sectionTitle}>Mensagens do Moderador</Text>
+                  {messages.length > 0 ? (
+                    messages.map((message, index) => (
+                      <View key={index} style={styles.messageCard}>
+                        <Text style={styles.messageText}>{message.text}</Text>
+                        <Text style={styles.timestamp}>
+                          {new Date(message.timestamp).toLocaleString()}
+                        </Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={{ fontSize: 16, color: '#777', textAlign: 'center', marginTop: 10 }}>
+                      Nenhuma mensagem encontrada.
+                    </Text>
+                  )}
+                </View>
+
+
             </View>
           )}
         </Animated.View>
@@ -472,4 +527,35 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 20,
   },
+  messagesSection: {
+    marginTop: 20,
+  },
+  messageCard: {
+    backgroundColor: '#f5f5f5',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  messageText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 5,
+    textAlign: 'right',
+  },
+  noMessages: {
+    fontSize: 14,
+    color: '#777',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  
+  
 });
