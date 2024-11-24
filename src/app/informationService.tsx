@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import ProgressBar from '../components/ProgressBar';
+import { useFlowContext } from '../contexts/FlowContext';
 
 export default function InformationService() {
   const router = useRouter();
-  const { service, token } = useLocalSearchParams();
-  const [nomeCompleto, setNomeCompleto] = useState('');
-  const [placaCarro, setPlacaCarro] = useState('');
-  const [nomeVeiculo, setNomeVeiculo] = useState('');
+  const { data, setData } = useFlowContext(); // Usando o contexto para persistência
+  const [nomeCompleto, setNomeCompleto] = useState(data.nomeCompleto || ''); // Carrega do contexto ou vazio
+  const [placaCarro, setPlacaCarro] = useState(data.placaCarro || '');
+  const [nomeVeiculo, setNomeVeiculo] = useState(data.nomeVeiculo || '');
+
+  // O serviço já está armazenado no contexto
+  const service = data.service || 'Serviço não selecionado';
 
   const formatPlaca = (value: string) => {
     value = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -28,10 +32,16 @@ export default function InformationService() {
       return;
     }
 
-    router.push({
-      pathname: '/uploadPdf',
-      params: { service, nomeCompleto, placaCarro, nomeVeiculo, token },
+    // Salvar os dados no contexto, incluindo o serviço
+    setData({
+      service, // Garante que o serviço continue disponível
+      nomeCompleto,
+      placaCarro,
+      nomeVeiculo,
     });
+
+    // Navegar para a próxima etapa
+    router.push('/uploadPdf');
   };
 
   return (
@@ -41,11 +51,15 @@ export default function InformationService() {
           <ProgressBar etapaAtual={2} totalEtapas={4} />
         </View>
       </View>
-  
+
       <View style={styles.titleContainer}>
         <Text style={styles.headerTitle}>Preencha as informações abaixo:</Text>
+        <Text style={styles.serviceText}>
+          Serviço escolhido: {service ? service : 'Nenhum serviço selecionado'}
+        </Text>
       </View>
-  
+
+
       <View style={styles.content}>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Nome Completo</Text>
@@ -56,7 +70,7 @@ export default function InformationService() {
             onChangeText={setNomeCompleto}
           />
         </View>
-  
+
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Placa do Carro</Text>
           <TextInput
@@ -67,7 +81,7 @@ export default function InformationService() {
             maxLength={7}
           />
         </View>
-  
+
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Apelido do Veículo</Text>
           <TextInput
@@ -78,9 +92,14 @@ export default function InformationService() {
           />
         </View>
       </View>
-  
+
       <View style={styles.footer}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => {
+            router.back(); // Volta para o "Escolher Serviço"
+          }}
+          style={styles.backButton}
+        >
           <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleSubmit} style={styles.nextButton}>
@@ -89,10 +108,10 @@ export default function InformationService() {
       </View>
     </View>
   );
-  
 }
 
 const styles = StyleSheet.create({
+  // Mesmos estilos que você forneceu
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
@@ -121,12 +140,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.5,
   },
+  serviceText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111c55',
+    marginTop: 10,
+    textAlign: 'center',
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    paddingBottom: 20, // Para ajustar a centralização
+    paddingBottom: 20,
   },
   inputContainer: {
     width: '100%',
@@ -169,7 +195,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 25,
     alignItems: 'center',
-    justifyContent: 'center',
     flex: 1,
     marginRight: 10,
   },
@@ -177,7 +202,6 @@ const styles = StyleSheet.create({
     color: '#111c55',
     fontSize: 16,
     fontWeight: '600',
-    letterSpacing: 0.2,
   },
   nextButton: {
     backgroundColor: '#111c55',
@@ -185,7 +209,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 25,
     alignItems: 'center',
-    justifyContent: 'center',
     flex: 1,
     marginLeft: 10,
   },
@@ -193,7 +216,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
-    letterSpacing: 0.2,
   },
 });
-
