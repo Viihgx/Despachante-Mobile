@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ProgressBar from '../components/ProgressBar';
+import { useFlowContext } from '../contexts/FlowContext';
+import * as SecureStore from 'expo-secure-store'; // Importa SecureStore
 
 const serviceDetails: Record<string, string[]> = {
   'Primeiro Emplacamento': [
@@ -32,9 +34,27 @@ const serviceDetails: Record<string, string[]> = {
 
 export default function EscolherServicoScreen() {
   const router = useRouter();
+  const { setData, clearData } = useFlowContext(); // Inclui clearData do contexto
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
-  const { service, token } = useLocalSearchParams();
   const [scale] = useState(new Animated.Value(1));
+  const [token, setToken] = useState<string | null>(null); // Estado para armazenar o token
+
+  useEffect(() => {
+    const fetchToken = async () => {
+      try {
+        const storedToken = await SecureStore.getItemAsync('userToken');
+        if (storedToken) {
+          setToken(storedToken); // Armazena o token no estado
+        } else {
+          console.log('Token não encontrado');
+        }
+      } catch (error) {
+        console.error('Erro ao obter o token:', error);
+      }
+    };
+
+    fetchToken(); // Chama a função para recuperar o token
+  }, []);
 
   const toggleExpand = (service: string) => {
     if (expandedCard === service) {
@@ -45,17 +65,30 @@ export default function EscolherServicoScreen() {
   };
 
   const handleServiceSelection = (service: string) => {
+    if (!token) {
+      Alert.alert('Erro', 'Token de autenticação não encontrado. Por favor, faça login novamente.');
+      return; // Retorna se não houver token
+    }
+
     Animated.sequence([
       Animated.timing(scale, { toValue: 0.95, duration: 100, easing: Easing.ease, useNativeDriver: true }),
       Animated.timing(scale, { toValue: 1, duration: 100, easing: Easing.ease, useNativeDriver: true }),
     ]).start(() => {
+      // Salva o serviço selecionado no contexto
+      setData({ service, token }); // Inclui o token ao salvar o serviço
 
-    router.push({
-      pathname: '/informationService',
-      params: { service, token },
+      // Navega para a próxima etapa
+      router.push({
+        pathname: '/informationService',
+      });
     });
-  });
-};
+  };
+
+  const handleBackToHome = () => {
+    // Limpa todos os dados ao voltar para a home
+    clearData();
+    router.push('/'); // Redireciona para a home
+  };
 
   return (
     <View style={styles.container}>
@@ -83,7 +116,6 @@ export default function EscolherServicoScreen() {
 
             {expandedCard === item && (
               <Animated.View key={index} style={[styles.cardDetails, { transform: [{ scale }] }]}>
-                {/* Adicionando o título "Documentos Necessários:" */}
                 <Text style={styles.documentsTitle}>Documentos Necessários:</Text>
 
                 {serviceDetails[item].map((detail, idx) => (
@@ -91,6 +123,7 @@ export default function EscolherServicoScreen() {
                     • {detail}
                   </Text>
                 ))}
+
                 <TouchableOpacity
                   style={styles.selectButton}
                   onPress={() => handleServiceSelection(item)}
@@ -104,7 +137,10 @@ export default function EscolherServicoScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={handleBackToHome} // Chama a função para limpar dados e voltar
+          style={styles.backButton}
+        >
           <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
       </View>
@@ -113,6 +149,7 @@ export default function EscolherServicoScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Estilos permanecem os mesmos
   container: {
     flex: 1,
     backgroundColor: '#f2f4f8',
