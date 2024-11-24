@@ -1,22 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import ProgressBar from '../components/ProgressBar';
+import { useFlowContext } from '../contexts/FlowContext';
 
 export default function PaymentForm() {
   const router = useRouter();
-  const { token, pdfUri, pdfName, service, nomeCompleto, placaCarro, nomeVeiculo } = useLocalSearchParams();
+  const { data, setData, clearData } = useFlowContext(); // Usa os dados e as funções do contexto
 
-  const [cpf, setCpf] = useState<string>('');
-  const [metodoPagamento, setMetodoPagamento] = useState<string>('');
-  const API_URL = 'http://10.0.2.2:5000/api';
+  // Define os valores iniciais com base no contexto
+  const [cpf, setCpf] = useState(data.cpf || '');
+  const [metodoPagamento, setMetodoPagamento] = useState(data.metodoPagamento || '');
+  const API_URL = 'http://10.0.2.2:5000/api'; // Ajuste para a URL correta do backend
 
-  const tipoServico = Array.isArray(service) ? service[0] : service || '';
-  const nome = Array.isArray(nomeCompleto) ? nomeCompleto[0] : nomeCompleto || '';
-  const placa = Array.isArray(placaCarro) ? placaCarro[0] : placaCarro || '';
-  const veiculo = Array.isArray(nomeVeiculo) ? nomeVeiculo[0] : nomeVeiculo || '';
+  // Atualiza o contexto sempre que o CPF ou o método de pagamento forem alterados
+  useEffect(() => {
+    setData({
+      ...data,
+      cpf,
+      metodoPagamento,
+    });
+  }, [cpf, metodoPagamento]);
 
   const formatCpf = (value: string) => {
     value = value.replace(/\D/g, '');
@@ -32,59 +38,53 @@ export default function PaymentForm() {
   };
 
   const handlePaymentSubmit = async () => {
-    // Verificação dos parâmetros obrigatórios
-  if (!cpf || !metodoPagamento || !tipoServico) {
-    Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios');
-    return;
-  }
-
-  if (!token) {
-    Alert.alert('Erro', 'Token de autenticação não encontrado');
-    return;
-  }
-
-  if (!pdfUri || !pdfName) {
-    Alert.alert('Erro', 'Arquivo PDF não encontrado. Por favor, faça o upload de um PDF válido.');
-    return;
-  }
-
-  if (!nomeCompleto || !placaCarro || !nomeVeiculo) {
-    Alert.alert('Erro', 'Informações do veículo estão incompletas. Por favor, preencha todos os dados.');
-    return;
-  }
-
-    const formData = new FormData();
-    if (typeof pdfUri === 'string' && typeof pdfName === 'string') {
-      formData.append('pdfFiles', {
-        uri: pdfUri,
-        name: pdfName || 'arquivo.pdf',
-        type: 'application/pdf',
-      } as any);        
-    } else {
-      Alert.alert('Erro', 'Arquivo PDF não encontrado');
+    // Verifica se todos os campos estão preenchidos
+    if (!cpf || !metodoPagamento) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
-    formData.append('tipoServico', tipoServico);
-    formData.append('nomeCompleto', nome);
+    if (!data.pdfUri || !data.pdfName) {
+      Alert.alert('Erro', 'Arquivo PDF não encontrado. Por favor, faça o upload de um PDF válido.');
+      return;
+    }
+
+    // Criação de FormData com checagem de valores válidos
+    const formData = new FormData();
+    formData.append('pdfFiles', {
+      uri: data.pdfUri as string, // Garantimos que não seja undefined
+      name: data.pdfName as string,
+      type: 'application/pdf',
+    } as any);
+
+    if (data.service) formData.append('tipoServico', data.service);
+    if (data.nomeCompleto) formData.append('nomeCompleto', data.nomeCompleto);
+    if (data.placaCarro) formData.append('placaVeiculo', data.placaCarro);
+    if (data.nomeVeiculo) formData.append('nomeVeiculo', data.nomeVeiculo);
     formData.append('formaPagamento', metodoPagamento);
-    formData.append('placaVeiculo', placa);
-    formData.append('nomeVeiculo', veiculo);
+    formData.append('cpf', cpf);
 
     try {
       const response = await axios.post(`${API_URL}/upload-pdfs`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
+          'Authorization': `Bearer ${data.token}`,
+          
+        }, 
         timeout: 60000,
       });
 
+      if (!data.token) {
+        Alert.alert('Erro', 'Token de autenticação não encontrado.');
+        return;
+      }
+      console.log('Token:', data.token);
+
       Alert.alert('Sucesso', 'Serviço solicitado com sucesso.');
-      router.push('/');
+      clearData(); // Limpa o contexto após finalizar o serviço
+      router.push({ pathname: '/' }); // Corrige o tipo de navegação
     } catch (error) {
-      console.error('Erro ao fazer upload de PDFs:', error);
+      console.error('Erro ao enviar os dados:', error);
       Alert.alert('Erro', 'Ocorreu um erro ao solicitar o serviço.');
     }
   };
@@ -93,22 +93,23 @@ export default function PaymentForm() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.progressBarContainer}>
-          <ProgressBar etapaAtual={3} totalEtapas={4} />
+          <ProgressBar etapaAtual={4} totalEtapas={4} />
         </View>
       </View>
 
       <View style={styles.content}>
         <Text style={styles.title}>Informações de Pagamento</Text>
+
         <View style={styles.inputContainer}>
-        <Text style={styles.label}>CPF</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="CPF"
-          value={cpf}
-          onChangeText={formatCpf}
-          keyboardType="numeric"
-          maxLength={14}
-        />
+          <Text style={styles.label}>CPF</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="CPF"
+            value={cpf}
+            onChangeText={formatCpf}
+            keyboardType="numeric"
+            maxLength={14}
+          />
         </View>
 
         <View style={styles.pickerContainer}>
@@ -128,7 +129,10 @@ export default function PaymentForm() {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()} // Volta para o upload de PDF
+        >
           <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.submitButton} onPress={handlePaymentSubmit}>
@@ -171,7 +175,6 @@ const styles = StyleSheet.create({
   inputContainer: {
     width: '100%',
     marginBottom: 40,
-    height: 50,
   },
   label: {
     fontSize: 16,
