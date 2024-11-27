@@ -6,7 +6,7 @@ app.options('*', cors());
 // Habilita o CORS para permitir requisições de outras origens
 app.use(cors({
   origin: '*', 
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 
 app.use(express.json({ limit: '50mb' }));

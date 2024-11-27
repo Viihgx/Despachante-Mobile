@@ -8,6 +8,7 @@ import { Menu, MenuItem } from 'react-native-material-menu';
 import Navbar from '../components/NavBar';
 import StatusIndicator from '../components/StatusIndicator';
 import FilterButton from '../components/FilterButton';
+import * as DocumentPicker from 'expo-document-picker';
 
 interface Servico {
   id: string; 
@@ -149,7 +150,57 @@ export default function HomeScreen() {
       })
       .catch((err) => console.error("Erro ao tentar abrir o link:", err));
   };
+
+  const handleReplacePdf = async (servicoId: string, fileIndex: number) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf' });
   
+      if (!result.canceled) {
+        const { uri, name } = result.assets[0];
+        const token = await SecureStore.getItemAsync('userToken');
+  
+        const formData = new FormData();
+        formData.append('pdf', {
+          uri,
+          name,
+          type: 'application/pdf',
+        } as unknown as Blob);
+  
+        formData.append('servicoId', servicoId);
+        formData.append('fileIndex', fileIndex.toString());
+        
+        await axios.put(`${API_URL}/api/replace-pdf`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+  
+        Alert.alert('Sucesso', 'PDF substituído com sucesso!');
+        setServicos((prev) =>
+          prev.map((servico) =>
+            servico.id === servicoId
+              ? {
+                  ...servico,
+                  file_pdfs: servico.file_pdfs.map((file, index) =>
+                    index === fileIndex ? uri : file
+                  ),
+                }
+              : servico
+          )
+        );
+      } else {
+        Alert.alert('Cancelado', 'Nenhum arquivo selecionado.');
+      }
+    } catch (error) {
+      console.error('Erro ao substituir o PDF:', error);
+      Alert.alert('Erro', 'Não foi possível substituir o PDF.');
+    }
+  };
+  
+  
+
   const fetchMessages = async (servicoId: string) => {
     try {
       const token = await SecureStore.getItemAsync('userToken');
@@ -302,19 +353,26 @@ export default function HomeScreen() {
 
 
               <Text style={styles.modalText}>Baixar PDF:</Text>
-              {selectedServico.file_pdfs.length > 0 && (
-                <View>
-                  {selectedServico.file_pdfs.map((fileUrl, fileIndex) => (
-                    <TouchableOpacity
-                      key={fileIndex}
-                      style={styles.downloadButton}
-                      onPress={() => handleDownload(fileUrl)}
-                    >
-                      <Text style={styles.downloadText}>Baixar PDF {fileIndex + 1}</Text>
-                    </TouchableOpacity>
-                  ))}
+              {selectedServico.file_pdfs.map((fileUrl, fileIndex) => (
+                <View key={fileIndex}>
+                  {/* Botão para baixar o PDF */}
+                  <TouchableOpacity
+                    onPress={() => handleDownload(fileUrl)}
+                    style={styles.downloadButton}
+                  >
+                    <Text style={styles.downloadText}>Baixar PDF {fileIndex + 1}</Text>
+                  </TouchableOpacity>
+
+                  {/* Botão para substituir o PDF */}
+                  <TouchableOpacity
+                    onPress={() => handleReplacePdf(selectedServico.id, fileIndex)}
+                    style={styles.replaceButton}
+                  >
+                    <Text>Alterar PDF {fileIndex + 1}</Text>
+                  </TouchableOpacity>
                 </View>
-              )}
+              ))}
+
                 <View style={styles.messagesSection}>
                   <Text style={styles.sectionTitle}>Mensagens do Moderador</Text>
                   {messages.length > 0 ? (
@@ -515,6 +573,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
+  replaceButton: {
+    backgroundColor: '#f5b91e',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  
   profileLink: {
     fontSize: 16,
     color: '#111c55',

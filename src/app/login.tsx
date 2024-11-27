@@ -27,6 +27,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bem-vindo de volta!</Text>
+      <Text style={styles.title}>Faça login</Text>
 
       <TextInput
         style={styles.input}
@@ -51,6 +52,12 @@ export default function LoginScreen() {
         <Text style={styles.loginButtonText}>Entrar</Text>
       </TouchableOpacity>
 
+      <View style={styles.signupContainer}>
+        <Text style={styles.signupText}>Esqueceu a senha?</Text>
+        <Link href="/passwordRecovery" style={styles.signupLink}>
+          Redefinir Senha
+        </Link>
+      </View>
       <View style={styles.signupContainer}>
         <Text style={styles.signupText}>Não tem uma conta?</Text>
         <Link href="/signup" style={styles.signupLink}>

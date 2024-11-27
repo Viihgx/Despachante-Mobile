@@ -5,6 +5,128 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
+
+// Configuração do transporte de e-mail
+const transporter = nodemailer.createTransport({
+  service: 'Gmail', // Substituir por outro provedor se necessário
+  auth: {
+    user: 'eduardo.mbas@gmail.com',
+    pass: 'uuzo wuse hxzy gpam', // Use uma senha ou app password
+  },
+});
+
+// Armazenamento temporário de PINs com timestamps
+const pinStorage = {}; // { email: { pin: '123456', expiresAt: 1690000000 } }
+
+// Função para gerar PIN
+const generatePin = () => Math.floor(100000 + Math.random() * 900000).toString(); // Gera PIN de 6 dígitos
+
+// Enviar PIN com expiração
+router.post('/send-pin', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Verificar se o e-mail está cadastrado
+    const { data, error } = await supabase
+      .from('Usuarios')
+      .select('Email_usuario')
+      .eq('Email_usuario', email)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ success: false, message: 'E-mail não encontrado.' });
+    }
+
+    // Gerar e armazenar o PIN com tempo de expiração
+    const pin = generatePin();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutos a partir de agora
+    pinStorage[email] = { pin, expiresAt };
+
+    // Enviar o PIN por e-mail
+    await transporter.sendMail({
+      from: '"Sua Empresa" <eduardo.mbas@gmail.com>',
+      to: email,
+      subject: 'Recuperação de Senha',
+      text: `Seu PIN de recuperação de senha é: ${pin}. Ele expira em 10 minutos.`,
+    });
+
+    res.status(200).json({ success: true, message: 'PIN enviado para o e-mail.' });
+  } catch (err) {
+    console.error('Erro ao enviar PIN:', err);
+    res.status(500).json({ success: false, message: 'Erro ao enviar PIN.' });
+  }
+});
+
+// Validar PIN
+router.post('/validate-pin', (req, res) => {
+  const { email, pin } = req.body;
+
+  if (!pinStorage[email]) {
+    return res.status(400).json({ success: false, message: 'PIN não encontrado ou expirado.' });
+  }
+
+  const { pin: storedPin, expiresAt } = pinStorage[email];
+
+  // Verificar se o PIN está expirado
+  if (Date.now() > expiresAt) {
+    delete pinStorage[email];
+    return res.status(400).json({ success: false, message: 'PIN expirado.' });
+  }
+
+  // Validar o PIN
+  if (storedPin === pin) {
+    return res.status(200).json({ success: true, message: 'PIN validado com sucesso.' });
+  }
+
+  res.status(400).json({ success: false, message: 'PIN inválido.' });
+});
+
+// Redefinir Senha
+router.post('/reset-password', async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    // Verificar se o e-mail está cadastrado
+    const { data, error } = await supabase
+      .from('Usuarios')
+      .select('Email_usuario')
+      .eq('Email_usuario', email)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ success: false, message: 'E-mail não encontrado.' });
+    }
+
+    // Verificar se o PIN existe e está válido
+    if (!pinStorage[email] || Date.now() > pinStorage[email].expiresAt) {
+      delete pinStorage[email];
+      return res.status(400).json({ success: false, message: 'PIN expirado ou inválido.' });
+    }
+
+    // Hash da nova senha
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Atualizar a senha no banco de dados
+    const { error: updateError } = await supabase
+      .from('Usuarios')
+      .update({ Senha_usuario: hashedPassword })
+      .eq('Email_usuario', email);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    // Remover o PIN após redefinição de senha
+    delete pinStorage[email];
+
+    res.status(200).json({ success: true, message: 'Senha redefinida com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao redefinir senha:', err);
+    res.status(500).json({ success: false, message: 'Erro ao redefinir senha.' });
+  }
+});
 
 // Configuração do multer para upload de arquivos
 const storage = multer.memoryStorage();  // Armazena os arquivos na memória em vez de no disco
@@ -383,6 +505,73 @@ router.post('/upload-pdfs', authenticateToken, upload.array('pdfFiles', 10), asy
     res.status(500).json({ error: 'Erro ao fazer upload de PDFs' });
   }
 });
+
+router.put('/replace-pdf', authenticateToken, upload.single('pdf'), async (req, res) => {
+  try {
+    console.log('Arquivo recebido:', req.file);
+    console.log('Body recebido:', req.body);
+
+    const { servicoId, fileIndex } = req.body;
+
+    // Verifique se o arquivo foi enviado
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    }
+
+    // Verifique se `servicoId` e `fileIndex` estão presentes
+    if (!servicoId || fileIndex === undefined) {
+      return res.status(400).json({ error: 'Parâmetros inválidos.' });
+    }
+
+    // Buscar o serviço pelo ID
+    const { data: servico, error: servicoError } = await supabase
+      .from('servicoSolicitado')
+      .select('file_pdfs')
+      .eq('id', servicoId)
+      .single();
+
+    if (servicoError || !servico) {
+      return res.status(404).json({ error: 'Serviço não encontrado.' });
+    }
+
+    // Fazer o upload do novo PDF
+    const fileName = `${servicoId}_${Date.now()}_${req.file.originalname}`;
+    const { error: uploadError } = await supabase.storage
+      .from('arquivoPdf')
+      .upload(`uploads/${fileName}`, req.file.buffer, {
+        contentType: 'application/pdf',
+      });
+
+    if (uploadError) {
+      throw new Error(`Erro ao fazer upload do arquivo: ${uploadError.message}`);
+    }
+
+    const newFileUrl = supabase.storage.from('arquivoPdf').getPublicUrl(`uploads/${fileName}`).data.publicUrl;
+
+    // Atualizar o PDF no array de `file_pdfs`
+    const updatedPdfs = [...servico.file_pdfs];
+    updatedPdfs[fileIndex] = newFileUrl;
+
+    // Atualizar o registro no banco de dados
+    const { error: updateError } = await supabase
+      .from('servicoSolicitado')
+      .update({ file_pdfs: updatedPdfs })
+      .eq('id', servicoId);
+
+    if (updateError) {
+      throw new Error(`Erro ao atualizar os dados: ${updateError.message}`);
+    }
+
+    res.status(200).json({ message: 'PDF substituído com sucesso.', fileUrl: newFileUrl });
+  } catch (error) {
+    console.error('Erro ao substituir o PDF:', error.message);
+    res.status(500).json({ error: 'Erro ao substituir o PDF.', details: error.message });
+  }
+});
+
+
+
+
 
 // Rota para buscar mensagens por ID do serviço
 router.get('/messages/:servico_id', authenticateToken, async (req, res) => {
